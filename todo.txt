@@ -1,0 +1,27 @@
+# Todo
+
+* Write data container and grid for park based on attributes 
+
+* Write Sprite with it's personality, energy stats
+
+* Write Skate system class for managing a sprite's skating
+
+Skate system overview 
+
+State buy drink
+- go to vending machines
+- buy drink 
+- Go sit down with drink somewhere 
+- Sit and drink
+
+State rest
+- go to some rest spot
+- do some idle pose
+
+State do trick 
+- go to the start spot
+- wait for obsticle to be free
+- go to the obsticle
+- do trick on obsticle
+- paus 
+
