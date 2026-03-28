@@ -9,12 +9,10 @@ export type ArtConfig = {
   play: Scene;
   pause: Scene;
   canvas?: string;
-  frameRate?: number;
   displayGrid: boolean;
   services?: Record<string, any>;
 };
 
-const FRAME_RATE_DEFAULT = 60;
 const CANVAS_SELECTOR_DEFAULT = "#art-canvas";
 const DEFAULT_TILE_SIZE = 16;
 
@@ -38,9 +36,7 @@ export default class Art {
   height: number;
   tileSize: number;
   displayGrid: boolean;
-  frameRate: number;
   startTime: Date | null;
-  elapsedAcc: number;
   elapsedPrev: number;
 
   #currId: number;
@@ -50,7 +46,6 @@ export default class Art {
     this.audio = new AudioPlayer();
     this.isPlaying = false;
     this.config = config;
-    this.elapsedAcc = 0;
     this.elapsedPrev = 0;
     this.width = config.width;
     this.height = config.height;
@@ -65,7 +60,7 @@ export default class Art {
       left: false,
       space: false,
     };
-    this.frameRate = config.frameRate ?? FRAME_RATE_DEFAULT;
+
     this.startTime = null;
     this.#currId = -1;
   }
@@ -110,36 +105,32 @@ export default class Art {
     elapsed = 0,
   ): Promise<void> {
     try {
-      this.elapsedAcc += elapsed - this.elapsedPrev;
+      const dt = elapsed - this.elapsedPrev;
 
-      if (this.elapsedAcc >= 1000 / this.frameRate) {
-        const currentTransform = ctx.getTransform();
-        ctx.clearRect(
-          0 - currentTransform.e,
-          0 - currentTransform.f,
-          this.width,
-          this.height,
-        );
+      const currentTransform = ctx.getTransform();
+      ctx.clearRect(
+        0 - currentTransform.e,
+        0 - currentTransform.f,
+        this.width,
+        this.height,
+      );
 
-        if (this.isPlaying) {
-          this.config.play.update(elapsed);
-          this.config.play.draw(ctx);
+      if (this.isPlaying) {
+        this.config.play.update(dt);
+        this.config.play.draw(ctx);
 
-          if (this.displayGrid) {
-            this.#drawGrid(
-              ctx,
-              this.height / this.tileSize,
-              this.width / this.tileSize,
-              this.tileSize,
-              "white",
-            );
-          }
-        } else {
-          this.config.pause.update(elapsed);
-          this.config.pause.draw(ctx);
+        if (this.displayGrid) {
+          this.#drawGrid(
+            ctx,
+            this.height / this.tileSize,
+            this.width / this.tileSize,
+            this.tileSize,
+            "white",
+          );
         }
-
-        this.elapsedAcc = 0;
+      } else {
+        this.config.pause.update(dt);
+        this.config.pause.draw(ctx);
       }
 
       this.elapsedPrev = elapsed;

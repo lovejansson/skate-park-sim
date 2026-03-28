@@ -3,24 +3,26 @@ import type Play from "./Play";
 import type Skater from "./Skater";
 import { randomEl } from "./utils";
 import { Path } from "./Path";
-import Timer, { ONE_MINUTE, TEN_MINUTES } from "./Timer";
+import Timer, { FIVE_MINUTES, ONE_MINUTE, TEN_MINUTES } from "./Timer";
 import Obsticle, {
   obsticles,
   obsticleTricks,
+  obsticleTricksSets,
   tricks,
   type ObsticleType,
   type Trick,
 } from "./Obsticle";
 
+
 export default class SkatingAtPark implements Updatable {
-  static tag: ActionTag = "skating-at-park";
-  readonly tag: ActionTag = SkatingAtPark.tag;
+  static tag: "skating-at-park" = "skating-at-park";
+  readonly tag: "skating-at-park" = SkatingAtPark.tag;
 
   private skater: Skater;
   private tricks: Trick[];
   private obsticles: ObsticleType[];
-  private currAction: Updatable;
-  private currObsticle: Obsticle;
+  private currAction: Updatable | null;
+  private currObsticle: Obsticle | null;
 
   constructor(skater: Skater) {
     this.skater = skater;
@@ -29,55 +31,66 @@ export default class SkatingAtPark implements Updatable {
       obsticleTricks[o].some((t1) => this.tricks.includes(t1)),
     );
 
-    const obsticleType = randomEl(this.obsticles);
-
-    this.currObsticle = randomEl(
-      (this.skater.scene as Play).obsticles.filter(
-        (o) => o.type === obsticleType,
-      ),
-    );
-
-    this.currAction = createAction(
-      obsticleType,
-      this.skater,
-      this.currObsticle,
-    );
+    this.currAction = null;
+    this.currObsticle = null;
   }
 
-  update(elapsed: number): void {
-    /**
-     * Antingen
-     *
-     * sitta vid kanten och vila
-     *
-     * Skata vid ett obsticle där obsticle avgör vilken obsticle action som görs
-     *
-     * Köpa en dricka vid vending machines och gå tillbaka och sätta sig
-     *
-     */
+  update(dt: number): void {
+    // Just arrived to the park
+    if (this.currAction === null || this.currAction.isComplete()) {
+      const obsticleType = "ramp";
 
-    this.currAction.update(elapsed);
+      const obsticle = (this.skater.scene as Play).obsticles.find(
+        (o) => o.type === obsticleType,
+      );
 
-    if (this.currAction.isComplete()) {
-      if (this.currAction.tag === "approach-obsticle") {
+      // If obsticle is free for one more to go
+      if (obsticle !== undefined && !obsticle.isTooCrowded()) {
+        const idlePos = obsticle.arrive(this.skater.id);
+
+        this.skater.pos.x = idlePos.x - 4;
+        this.skater.pos.y = idlePos.y - this.skater.scene.art!.tileSize;
+
+        this.currObsticle = obsticle;
+
         this.currAction = createAction(
-          this.currObsticle.type,
+          "ramp",
           this.skater,
           this.currObsticle,
+          FIVE_MINUTES,
         );
-      } else {
-        const obsticleType = randomEl(this.obsticles);
-        this.currObsticle = randomEl(
-          (this.skater.scene as Play).obsticles.filter(
-            (o) => o.type === obsticleType,
-          ),
-        );
+      }
+      // TODO: when more obsticles and actions is coming
+    } else {
+      if (this.currAction.isComplete()) {
+        if (this.currAction.tag === "approach-obsticle") {
+          this.currAction = createAction(
+            (this.currAction as ApproachObsticle).obsticle.type,
+            this.skater,
+            (this.currAction as ApproachObsticle).obsticle,
+          );
+        } else {
+          const obsticleType = randomEl(this.obsticles);
 
-        this.currAction = createAction(
-          "approach-obsticle",
-          this.skater,
-          this.currObsticle.pos,
-        );
+          const obsticle = randomEl(
+            (this.skater.scene as Play).obsticles.filter(
+              (o) => o.type === obsticleType,
+            ),
+          );
+
+          if (obsticle === null)
+            throw new Error("Obsticle is null, shouldn't happen");
+
+          this.currObsticle = obsticle;
+
+          this.currAction = createAction(
+            "approach-obsticle",
+            this.skater,
+            this.currObsticle,
+          );
+        }
+      } else {
+        this.currAction.update(dt);
       }
     }
   }
@@ -88,8 +101,8 @@ export default class SkatingAtPark implements Updatable {
 }
 
 class TrickOllie implements Updatable {
-  static tag: ActionTag = "ollie";
-  readonly tag: ActionTag = TrickOllie.tag;
+  static tag: "ollie" = "ollie";
+  readonly tag: "ollie" = TrickOllie.tag;
 
   private skater: Skater;
 
@@ -97,7 +110,7 @@ class TrickOllie implements Updatable {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
 
   isComplete(): boolean {
     return true;
@@ -105,8 +118,8 @@ class TrickOllie implements Updatable {
 }
 
 class TrickPopShoveIt implements Updatable {
-  static tag: ActionTag = "pop-shove-it";
-  readonly tag: ActionTag = TrickPopShoveIt.tag;
+  static tag: "pop-shove-it" = "pop-shove-it";
+  readonly tag: "pop-shove-it" = TrickPopShoveIt.tag;
 
   private skater: Skater;
 
@@ -114,15 +127,15 @@ class TrickPopShoveIt implements Updatable {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
   isComplete(): boolean {
     return true;
   }
 }
 
 class TrickKickflip implements Updatable {
-  static tag: ActionTag = "kickflip";
-  readonly tag: ActionTag = TrickKickflip.tag;
+  static tag: "kickflip" = "kickflip";
+  readonly tag: "kickflip" = TrickKickflip.tag;
 
   private skater: Skater;
 
@@ -130,15 +143,15 @@ class TrickKickflip implements Updatable {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
   isComplete(): boolean {
     return true;
   }
 }
 
 class Trick5050Grind implements Updatable {
-  static tag: ActionTag = "50-50-grind";
-  readonly tag: ActionTag = Trick5050Grind.tag;
+  static tag: "50-50-grind" = "50-50-grind";
+  readonly tag: "50-50-grind" = Trick5050Grind.tag;
 
   private skater: Skater;
 
@@ -146,15 +159,15 @@ class Trick5050Grind implements Updatable {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
   isComplete(): boolean {
     return true;
   }
 }
 
 class Trick50Grind implements Updatable {
-  static tag: ActionTag = "5-0-grind";
-  readonly tag: ActionTag = Trick50Grind.tag;
+  static tag: "5-0-grind" = "5-0-grind";
+  readonly tag: "5-0-grind" = Trick50Grind.tag;
 
   private skater: Skater;
 
@@ -162,15 +175,15 @@ class Trick50Grind implements Updatable {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
   isComplete(): boolean {
     return true;
   }
 }
 
 class TrickNoseGrind implements Updatable {
-  static tag: ActionTag = "nose-grind";
-  readonly tag: ActionTag = TrickNoseGrind.tag;
+  static tag: "nose-grind" = "nose-grind";
+  readonly tag: "nose-grind" = TrickNoseGrind.tag;
 
   private skater: Skater;
 
@@ -178,15 +191,15 @@ class TrickNoseGrind implements Updatable {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
   isComplete(): boolean {
     return true;
   }
 }
 
 class TrickGrab implements Updatable {
-  static tag: ActionTag = "grab";
-  readonly tag: ActionTag = TrickGrab.tag;
+  static tag: "grab" = "grab";
+  readonly tag: "grab" = TrickGrab.tag;
 
   private skater: Skater;
 
@@ -194,15 +207,15 @@ class TrickGrab implements Updatable {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
   isComplete(): boolean {
     return true;
   }
 }
 
 class Trick180 implements Updatable {
-  static tag: ActionTag = "180";
-  readonly tag: ActionTag = Trick180.tag;
+  static tag: "180" = "180";
+  readonly tag: "180" = Trick180.tag;
 
   private skater: Skater;
 
@@ -210,21 +223,22 @@ class Trick180 implements Updatable {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
   isComplete(): boolean {
     return true;
   }
 }
 
 class Trick360 implements Updatable {
-  tag: "360" = "360";
+  static tag: "360" = "360";
+  readonly tag: "360" = Trick360.tag;
   skater: Skater;
 
   constructor(skater: Skater) {
     this.skater = skater;
   }
 
-  update(elapsed: number): void {
+  update(_: number): void {
     /**
      * General idea
      *
@@ -245,8 +259,8 @@ class Trick360 implements Updatable {
 }
 
 class Trick360ShoveIt implements Updatable {
-  static tag: ActionTag = "360-shove-it";
-  readonly tag: ActionTag = Trick360ShoveIt.tag;
+  static tag: "360-shove-it" = "360-shove-it";
+  readonly tag: "360-shove-it" = Trick360ShoveIt.tag;
 
   private skater: Skater;
 
@@ -254,15 +268,15 @@ class Trick360ShoveIt implements Updatable {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
   isComplete(): boolean {
     return true;
   }
 }
 
 class RailObstacle implements Updatable {
-  static tag: ActionTag = "rail";
-  readonly tag: ActionTag = RailObstacle.tag;
+  static tag: "rail" = "rail";
+  readonly tag: "rail" = RailObstacle.tag;
 
   private skater: Skater;
 
@@ -270,30 +284,30 @@ class RailObstacle implements Updatable {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
   isComplete(): boolean {
     return true;
   }
 }
 
 class FlatObstacle implements Updatable {
-  static tag: ActionTag = "flat";
-  readonly tag: ActionTag = FlatObstacle.tag;
+  static tag: "flat" = "flat";
+  readonly tag: "flat" = FlatObstacle.tag;
   private skater: Skater;
 
   constructor(skater: Skater, obsticle: Obsticle) {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
   isComplete(): boolean {
     return true;
   }
 }
 
 class SquareObstacle implements Updatable {
-  static tag: ActionTag = "square";
-  readonly tag: ActionTag = SquareObstacle.tag;
+  static tag: "square" = "square";
+  readonly tag: "square" = SquareObstacle.tag;
 
   private skater: Skater;
 
@@ -301,32 +315,186 @@ class SquareObstacle implements Updatable {
     this.skater = skater;
   }
 
-  update(deltaTime: number) {}
+  update(_: number) {}
   isComplete(): boolean {
     return true;
+  }
+}
+
+class ClimbRampObsticle implements Updatable {
+  static tag: "climb-ramp" = "climb-ramp";
+  readonly tag: "climb-ramp" = ClimbRampObsticle.tag;
+
+  private skater: Skater;
+  private idlePos: Vec2;
+
+  constructor(skater: Skater, idlePos: Vec2) {
+    //TODO:  Add check for skater standing at the correct pos.
+
+    this.idlePos = idlePos;
+    this.skater = skater;
+  }
+
+  update(_: number): void {
+    // 1. start animation if not started
+    // 2. if animation is finnished they are up
+    // 3. move y upwards each update with 1
+    // en animering som kommer loopa per ms enligt ett sheet, men också en rörelse som kommer att ske
+  }
+  isComplete(): boolean {
+    return this.skater.pos.y === this.idlePos.y;
   }
 }
 
 class RampObstacle implements Updatable {
-  static tag: ActionTag = "ramp";
-  readonly tag: ActionTag = RampObstacle.tag;
+  static tag: "ramp" = "ramp";
+  readonly tag: "ramp" = RampObstacle.tag;
+  private skater: Skater;
+  private timer: Timer;
+  private currAction: null | Updatable;
+  private obsticle: Obsticle;
+
+  constructor(skater: Skater, obsticle: Obsticle, ms: number) {
+    this.skater = skater;
+    this.timer = new Timer();
+    this.timer.start(ms);
+    this.currAction = null;
+    this.obsticle = obsticle;
+  }
+
+  update(_: number): void {
+    if (this.currAction === null) {
+      this.currAction = createAction(
+        ClimbRampObsticle.tag,
+        this.skater,
+        this.obsticle.getMyIdlePos(this.skater.id),
+      );
+    } else if (this.currAction.isComplete()) {
+      if (this.currAction.tag === ClimbRampObsticle.tag) {
+        this.obsticle.standInLine(this.skater.id);
+        this.currAction = new WaitingMyTurn(this.skater, this.obsticle);
+      } else if (this.currAction.tag === WaitingMyTurn.tag) {
+        this.currAction = createAction(
+          RampObsticleTricks.tag,
+          this.skater,
+          this.obsticle,
+        );
+      } else if (this.currAction.tag === RampObsticleTricks.tag) {
+        this.obsticle.endSkate(this.skater.id);
+        this.obsticle.standInLine(this.skater.id);
+
+        this.currAction = new WaitingMyTurn(this.skater, this.obsticle);
+      }
+    }
+  }
+
+  isComplete(): boolean {
+    return (
+      this.timer.isStopped &&
+      this.currAction !== null &&
+      this.currAction.isComplete()
+    );
+  }
+}
+
+class RampCruise implements Updatable {
+  static tag: "ramp-cruise" = "ramp-cruise";
+  readonly tag: "ramp-cruise" = RampCruise.tag;
 
   private skater: Skater;
 
-  constructor(skater: Skater, obsticle: Obsticle) {
+  private currRound: number;
+  private rounds: number;
+
+  constructor(skater: Skater, obsticle: Obsticle, rounds: number) {
     this.skater = skater;
+    this.currRound = 0;
+    this.rounds = rounds;
   }
 
-  update(elapsed: number): void {}
+  update(dt: number): void {
+    if (
+      !this.skater.animations.isPlaying("ramp-cruise-" + this.skater.direction)
+    ) {
+      this.skater.animations.play("ramp-cruise-" + this.skater.direction);
+    }
+
+    this.skater.animations.update(dt);
+  }
 
   isComplete(): boolean {
-    return true;
+    return !this.skater.animations.isPlaying("ramp-cruise-" + this.skater.direction);
+  }
+}
+
+class RampObsticleTricks implements Updatable {
+  static tag: "ramp-obsticle-tricks" = "ramp-obsticle-tricks";
+  readonly tag: "ramp-obsticle-tricks" = RampObsticleTricks.tag;
+  obsticle: Obsticle;
+  skater: Skater;
+  currAction: Updatable | null;
+  tricks: Trick[];
+  currTrickIdx: number;
+
+  constructor(skater: Skater, obsticle: Obsticle) {
+    this.skater = skater;
+    this.obsticle = obsticle;
+    this.currAction = null;
+    this.currTrickIdx = 0;
+    this.tricks = tricks;
+    this.tricks = randomEl(obsticleTricksSets["ramp"])!;
+  }
+
+  update(_: number): void {
+    if (this.currAction === null) {
+      this.currAction = createAction(
+        RampCruise.tag,
+        this.skater,
+        this.obsticle,
+        2,
+      );
+      // ta ett nytt trick eller göra laps in between
+    } else if (this.currAction.isComplete()) {
+      if (this.currAction.tag === RampCruise.tag) {
+        this.currAction = createAction(
+          this.tricks[this.currTrickIdx],
+          this.skater,
+        );
+
+        this.currTrickIdx++;
+      } else {
+        // Pick the correct amount of cruise rounds so that the skater is on the same side as the idle pos
+
+        if (this.currTrickIdx === this.tricks.length - 2) {
+          this.currAction = createAction(
+            RampCruise.tag,
+            this.skater,
+            this.obsticle,
+            2,
+          );
+        } else {
+          this.currAction = createAction(
+            RampCruise.tag,
+            this.skater,
+            this.obsticle,
+            2,
+          );
+        }
+      }
+    }
+  }
+
+  isComplete(): boolean {
+    return (
+      this.currTrickIdx === this.tricks.length - 1 &&
+      (this.currAction?.isComplete() ?? false)
+    );
   }
 }
 
 class BowlObstacle implements Updatable {
-  static tag: ActionTag = "bowl";
-  readonly tag: ActionTag = BowlObstacle.tag;
+  static tag: "bowl" = "bowl";
+  readonly tag: "bowl" = BowlObstacle.tag;
 
   skater: Skater;
   tricks: Trick[];
@@ -343,17 +511,20 @@ class BowlObstacle implements Updatable {
     this.obsticle = obsticle;
   }
 
-  update(elapsed: number): void {
+  update(dt: number): void {
     if (this.currAction.isComplete()) {
       if (this.currAction.tag === "idle") {
-        this.currAction = new ApproachTrick(this.skater, this.obsticle.getFreeSpot());
+        // this.currAction = new ApproachTrick(
+        //   this.skater,
+        //   this.obsticle.getFreeSpot(),
+        // );
       } else if (this.currAction.tag === "approach-trick") {
         const trick = randomEl(this.tricks);
         const action = createAction("360", this.skater);
       }
     }
 
-    this.currAction.update(elapsed);
+    this.currAction.update(dt);
   }
 
   isComplete(): boolean {
@@ -362,17 +533,21 @@ class BowlObstacle implements Updatable {
 }
 
 class ApproachObsticle implements Updatable {
-  static tag: ActionTag = "approach-obsticle";
-  readonly tag: ActionTag = ApproachObsticle.tag;
+  static tag: "approach-obsticle" = "approach-obsticle";
+  readonly tag: "approach-obsticle" = ApproachObsticle.tag;
 
   skater: Skater;
-  goal: Vec2;
+  obsticle: Obsticle;
   path: Path;
 
-  constructor(skater: Skater, goal: Vec2) {
+  constructor(skater: Skater, obsticle: Obsticle) {
     this.skater = skater;
-    this.goal = goal;
-    this.path = new Path(this.skater, goal, (skater.scene as Play).parkGrid);
+    this.obsticle = obsticle;
+    this.path = new Path(
+      this.skater,
+      this.obsticle.pos,
+      (skater.scene as Play).parkGrid,
+    );
   }
 
   update(_: number): void {
@@ -385,8 +560,8 @@ class ApproachObsticle implements Updatable {
 }
 
 class ApproachTrick implements Updatable {
-  static tag: ActionTag = "approach-trick";
-  readonly tag: ActionTag = ApproachTrick.tag;
+  static tag: "approach-trick" = "approach-trick";
+  readonly tag: "approach-trick" = ApproachTrick.tag;
 
   skater: Skater;
   goal: Vec2;
@@ -407,9 +582,38 @@ class ApproachTrick implements Updatable {
   }
 }
 
+class WaitingMyTurn implements Updatable {
+  static tag: "waiting-my-turn" = "waiting-my-turn";
+  readonly tag: "waiting-my-turn" = WaitingMyTurn.tag;
+  private skater: Skater;
+  private obsticle: Obsticle;
+
+  constructor(skater: Skater, obsticle: Obsticle) {
+    this.skater = skater;
+    this.obsticle = obsticle;
+  }
+
+  update(dt: number): void {
+    // Set skater idle animation
+
+    // 1. start idle anim
+    // 2. update anim
+    // 3. wait for the skater to be next in line
+    this.skater.animations.update(dt);
+
+    if (this.obsticle.isMyTurn(this.skater.id)) {
+      this.obsticle.skate(this.skater.id);
+    }
+  }
+
+  isComplete(): boolean {
+    return this.obsticle.isOccupiedByMe(this.skater.id);
+  }
+}
+
 class Idle implements Updatable {
-  static tag: ActionTag = "idle";
-  readonly tag: ActionTag = Idle.tag;
+  static tag: "idle" = "idle";
+  readonly tag: "idle" = Idle.tag;
   skater: Skater;
   timer: Timer;
 
@@ -419,9 +623,9 @@ class Idle implements Updatable {
     this.timer.start(duration);
   }
 
-  update(elapsed: number): void {
+  update(dt: number): void {
     // Set skater idle animation
-    this.skater.animations.update();
+    this.skater.animations.update(dt);
   }
 
   isComplete(): boolean {
@@ -434,13 +638,17 @@ type ActionTag =
   | "idle"
   | "approach-trick"
   | "approach-obsticle"
+  | "climb-ramp"
+  | "waiting-my-turn"
+  | "ramp-cruise"
+  | "ramp-obsticle-tricks"
   | ObsticleType
   | Trick;
 
 type ActionParams = {
   "skating-at-park": [skater: Skater];
   "approach-trick": [skater: Skater, goal: Vec2];
-  "approach-obsticle": [skater: Skater, goal: Vec2];
+  "approach-obsticle": [skater: Skater, obsticle: Obsticle];
   idle: [skater: Skater, duration: number];
 
   ollie: [skater: Skater];
@@ -454,11 +662,16 @@ type ActionParams = {
   "360-shove-it": [skater: Skater];
   "360": [skater: Skater];
 
+  "ramp-cruise": [skater: Skater, obsticle: Obsticle, rounds: number];
+  "climb-ramp": [skater: Skater, idlePos: Vec2];
+  "ramp-obsticle-tricks": [skater: Skater, obsticle: Obsticle];
+  "waiting-my-turn": [skater: Skater, obsticle: Obsticle];
+
   bowl: [skater: Skater, obsticle: Obsticle];
   rail: [skater: Skater, obsticle: Obsticle];
   flat: [skater: Skater, obsticle: Obsticle];
   square: [skater: Skater, obsticle: Obsticle];
-  ramp: [skater: Skater, obsticle: Obsticle];
+  ramp: [skater: Skater, obsticle: Obsticle, ms: number];
 };
 
 const ActionConstructors: { [T in ActionTag]: UpdatableConstructor<T> } = {
@@ -476,6 +689,10 @@ const ActionConstructors: { [T in ActionTag]: UpdatableConstructor<T> } = {
   "180": Trick180,
   "360-shove-it": Trick360ShoveIt,
   "360": Trick360,
+  "ramp-cruise": RampCruise,
+  "climb-ramp": ClimbRampObsticle,
+  "waiting-my-turn": WaitingMyTurn,
+  "ramp-obsticle-tricks": RampObsticleTricks,
 
   rail: RailObstacle,
   bowl: BowlObstacle,
@@ -490,7 +707,7 @@ interface UpdatableConstructor<T extends ActionTag> {
 
 interface Updatable {
   readonly tag: ActionTag;
-  update(elapsed: number): void;
+  update(dt: number): void;
   isComplete(): boolean;
 }
 

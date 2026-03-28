@@ -12,7 +12,7 @@ export default abstract class ArtObject {
         this.id = scene.art.getId();
     }
 
-    update(elapsed: number): void {}
+    update(dt: number): void {}
 
     abstract draw(ctx: CanvasRenderingContext2D): void;
 }
