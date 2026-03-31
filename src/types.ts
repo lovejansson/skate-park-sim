@@ -10,4 +10,3 @@ export type Tilemap = {
   cols: number;
   attributes: { pos: Vec2; attributes: { [key: string]: any } }[];
 };
-

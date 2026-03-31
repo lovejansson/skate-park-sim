@@ -3,7 +3,7 @@ import { createDebugLogger } from "./debugger.ts";
 import Play from "./Play.ts";
 import Pause from "./Pause.ts";
 import "./audio-player/AudioPlayerElement.js";
-import tilemapJSON from "../tilemap.json";
+import tilemapJSON from "./tilemap.json";
 import type { Tilemap } from "./types.ts";
 
 export const debug = createDebugLogger(true);
@@ -18,6 +18,7 @@ const art = new Art({
   tileSize: tilemap.tileSize,
   canvas: "#canvas-art",
   displayGrid: false,
+  
 });
 
 art.start();
@@ -33,6 +34,15 @@ if(audioPlayerEl) {
         art.pause();
     })
 }
+
+
+
+addEventListener("keydown", (e) => {
+
+    if(e.key === "f") {
+        art.enterFullScreen();
+    } 
+})
 
 // TODO:
 // 1. Implement Play and Pause scenes

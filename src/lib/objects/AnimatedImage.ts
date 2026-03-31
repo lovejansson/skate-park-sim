@@ -1,10 +1,10 @@
 import ArtObject from "./ArtObject.ts";
 import Scene from "../Scene.ts";
-import type { AsepriteFrameData, AsepriteJSON } from "../types.js";
+import type {  AsepriteFrame, AsepriteJSON } from "../types.ts";
 
 export default class AnimatedImage extends ArtObject {
   image: string;
-  frames: AsepriteFrameData[];
+  frames: AsepriteFrame[];
   currentFrameIdx: number;
   elapsed: number;
 

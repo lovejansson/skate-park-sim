@@ -26,10 +26,6 @@ export default class StaticImage extends ArtObject {
     this.image = image;
   }
 
-  update(): void {
-    // static image → no update needed
-  }
-
   draw(ctx: CanvasRenderingContext2D): void {
     if (this.scene.art === null)
       throw new Error("art is not set on scene object");

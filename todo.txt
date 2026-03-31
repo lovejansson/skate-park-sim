@@ -1,10 +1,7 @@
 # Todo
 
-* Write data container and grid for park based on attributes 
 
-* Write Sprite with it's personality, energy stats
-
-* Write Skate system class for managing a sprite's skating
+* Handling of overlays in the animation system
 
 Skate system overview 
 

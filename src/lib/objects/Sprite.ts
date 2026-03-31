@@ -5,6 +5,7 @@ import type { Vec2, Direction } from "../types.ts";
 
 export default abstract class Sprite extends ArtObject {
     pos: Vec2;
+    vel: Vec2;
     width: number;
     height: number;
     halfWidth: number;
@@ -21,6 +22,7 @@ export default abstract class Sprite extends ArtObject {
     ) {
         super(scene);
         this.pos = pos;
+        this.vel = {x: 0, y: 0};
         this.width = width;
         this.height = height;
         this.direction = direction;
@@ -29,9 +31,10 @@ export default abstract class Sprite extends ArtObject {
         this.animations = new AnimationManager(this);
     }
 
-    abstract update(): void;
+    abstract update(dt: number): void;
 
     draw(ctx: CanvasRenderingContext2D): void {
+     
         this.animations.draw(ctx);
     }
 }

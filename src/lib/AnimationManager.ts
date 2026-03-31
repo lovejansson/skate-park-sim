@@ -2,37 +2,40 @@ import type Sprite from "./objects/Sprite.js";
 
 export type AnimationConfigT<T extends AnimationDriver> = {
   driver: T;
-  frames: AnimationFrame<T>[];
+  frames: AnimationFrameT<T>[];
   spritesheet: string;
-  loop: boolean;
+  repeat: number | boolean; // repeat number of times or true for infinite or false for no
 };
 
-export type AnimationFrame<T extends AnimationDriver> =
+export type AnimationFrameT<T extends AnimationDriver> =
   T extends AnimationDriver.Distance
     ? {
-        dx: number; // sprite x movement before changing frame
-        dy: number; // sprite y movement before changing frame
+        dx: number;
+        dy: number;
+        duration: number;
         spritesheetX: number;
         spritesheetY: number;
       }
     : T extends AnimationDriver.TimeMovementSync
       ? {
-          dx: number; // How much sprite should move in x direction when updating
-          dy: number; // How much sprite should move in y direction when updating
           spritesheetX: number;
           spritesheetY: number;
-          duration: number; // ms after which frame updates
+          duration: number;
         }
       : {
-          duration: number; // ms after which frame updates
+          duration: number;
           spritesheetX: number;
           spritesheetY: number;
         };
+export type AnimationFrame =
+  | AnimationFrameT<AnimationDriver.Distance>
+  | AnimationFrameT<AnimationDriver.Time>
+  | AnimationFrameT<AnimationDriver.TimeMovementSync>;
 
 export enum AnimationDriver {
-  Distance, // Animation updates to next frame when sprite has moved delta xy. // needs to keep track of sprite deltas
-  TimeMovementSync, // Animation updates after frame rate ms and then movement is updated according to delta xy and animation frame is changed. // needs to keep track of accumulated delta
-  Time, // Animation updates after frame rate ms. Movement is not updated.
+  Distance, // Animation updates to next frame after duration ms. Sprite's position is also updated according to dx and dy.
+  TimeMovementSync, // Animation updates to next frame after duration ms. Sprite's position is also updated according to sprite's velocity.
+  Time, // Animation updates after frame rate ms. Movement is not updated at all.
 }
 
 type AnimationStateT<T extends AnimationDriver> =
@@ -40,13 +43,14 @@ type AnimationStateT<T extends AnimationDriver> =
     ? {
         startX: number;
         startY: number;
+        elapsed: number;
       }
     : T extends AnimationDriver.TimeMovementSync
       ? {
-          elapsed: number; // ms
+          elapsed: number;
         }
       : {
-          elapsed: number; // ms
+          elapsed: number;
         };
 
 type PlayingAnimationT<T extends AnimationDriver> = {
@@ -59,6 +63,8 @@ type PlayingAnimationT<T extends AnimationDriver> = {
   overlay?: {
     spritesheet: string;
     frames: { spritesheetX: number; spritesheetY: number }[];
+    dx?: number;
+    dy?: number;
   };
 };
 
@@ -67,7 +73,7 @@ type PlayingAnimation =
   | PlayingAnimationT<AnimationDriver.Time>
   | PlayingAnimationT<AnimationDriver.TimeMovementSync>;
 
-type AnimationConfig =
+export type AnimationConfig =
   | AnimationConfigT<AnimationDriver.Distance>
   | AnimationConfigT<AnimationDriver.Time>
   | AnimationConfigT<AnimationDriver.TimeMovementSync>;
@@ -94,27 +100,27 @@ export default class AnimationManager {
       frames: { spritesheetX: number; spritesheetY: number }[];
     },
   ) {
-    const animation = this.animations.get(key);
+    const anim = this.animations.get(key);
 
-    if (!animation) throw new AnimationNotAddedError(key);
+    if (!anim) throw new AnimationNotAddedError(key);
 
-    switch (animation.driver) {
+    switch (anim.driver) {
       case AnimationDriver.Distance:
         this.playingAnimation = {
-          driver: animation.driver,
+          driver: anim.driver,
           key,
-          config: animation,
+          config: anim,
           overlay,
           frameCount: 0,
           loopCount: 0,
-          state: { startX: 0, startY: 0 },
+          state: { startX: 0, startY: 0, elapsed: 0 },
         };
         break;
       case AnimationDriver.TimeMovementSync:
         this.playingAnimation = {
-          driver: animation.driver,
+          driver: anim.driver,
           key,
-          config: animation,
+          config: anim,
           overlay,
           frameCount: 0,
           loopCount: 0,
@@ -123,9 +129,9 @@ export default class AnimationManager {
         break;
       case AnimationDriver.Time:
         this.playingAnimation = {
-          driver: animation.driver,
+          driver: anim.driver,
           key,
-          config: animation,
+          config: anim,
           overlay,
           frameCount: 0,
           loopCount: 0,
@@ -150,18 +156,76 @@ export default class AnimationManager {
   }
 
   update(dt: number): void {
-    if (!this.playingAnimation) return;
-
     if (this.sprite.scene.art === null)
       throw new Error("art is not set on sprite's scene object");
 
+    if (this.playingAnimation === null) return;
+
+    switch (this.playingAnimation.driver) {
+      case AnimationDriver.Distance: {
+        const frame =
+          this.playingAnimation.config.frames[this.playingAnimation.frameCount];
+
+        this.playingAnimation.state.elapsed += dt;
+
+        if (this.playingAnimation.state.elapsed >= frame.duration) {
+          this.playingAnimation.frameCount++;
+          this.sprite.pos.x += frame.dx;
+          this.sprite.pos.y += frame.dy;
+
+          this.playingAnimation.state.elapsed = 0;
+        }
+
+        break;
+      }
+      case AnimationDriver.TimeMovementSync: {
+        const frame =
+          this.playingAnimation.config.frames[this.playingAnimation.frameCount];
+
+        this.playingAnimation.state.elapsed += dt;
+
+        if (this.playingAnimation.state.elapsed >= frame.duration) {
+          this.playingAnimation.frameCount++;
+
+          this.sprite.pos.x += this.sprite.vel.x;
+          this.sprite.pos.y += this.sprite.vel.y;
+
+          this.playingAnimation.state.elapsed = 0;
+        }
+
+        break;
+      }
+      case AnimationDriver.Time: {
+        const frame =
+          this.playingAnimation.config.frames[this.playingAnimation.frameCount];
+
+        this.playingAnimation.state.elapsed += dt;
+
+        if (this.playingAnimation.state.elapsed >= frame.duration) {
+          this.playingAnimation.frameCount++;
+          this.playingAnimation.state.elapsed = 0;
+        }
+
+        break;
+      }
+    }
+
     if (
-      this.playingAnimation.frameCount >=
+      this.playingAnimation.frameCount ===
       this.playingAnimation.config.frames.length
     ) {
-      if (!this.playingAnimation.config.loop) {
+      if (this.playingAnimation.config.repeat === false) {
         this.playingAnimation = null;
-        return;
+      } else if (typeof this.playingAnimation.config.repeat === "number") {
+        if (
+          this.playingAnimation.config.repeat ===
+          this.playingAnimation.loopCount
+        ) {
+          this.playingAnimation = null;
+        } else {
+          this.playingAnimation.frameCount = 0;
+          this.playingAnimation.loopCount++;
+        }
       } else {
         this.playingAnimation.frameCount = 0;
         this.playingAnimation.loopCount++;
@@ -169,68 +233,10 @@ export default class AnimationManager {
 
       return;
     }
-
-    switch (this.playingAnimation.driver) {
-      case AnimationDriver.Distance: {
-        const frame =
-          this.playingAnimation.config.frames[
-            this.playingAnimation.frameCount - 1
-          ];
-        const dx = this.sprite.pos.x - this.playingAnimation.state.startX;
-        const dy = this.sprite.pos.y - this.playingAnimation.state.startY;
-
-        // If sprite moved equal or more than dx and dy for frame. A delta of 0 means that the delta wasn't necessary in that direction
-        if (
-          ((frame.dx < 0 && dx <= frame.dx) ||
-            (frame.dx > 0 && dx >= frame.dx) ||
-            frame.dx === 0) &&
-          ((frame.dy < 0 && dy <= frame.dy) ||
-            (frame.dy > 0 && dy >= frame.dy) ||
-            frame.dy === 0)
-        ) {
-          this.playingAnimation.frameCount++;
-          this.playingAnimation.state.startX = this.sprite.pos.x;
-          this.playingAnimation.state.startY = this.sprite.pos.y;
-        }
-
-        break;
-      }
-      case AnimationDriver.TimeMovementSync: {
-        const frame =
-          this.playingAnimation.config.frames[
-            this.playingAnimation.frameCount - 1
-          ];
-
-        this.playingAnimation.state.elapsed += dt;
-
-        if (this.playingAnimation.state.elapsed >= frame.duration) {
-          this.playingAnimation.frameCount++;
-
-          this.sprite.pos.x += frame.dx;
-          this.sprite.pos.y += frame.dy;
-        }
-
-        break;
-      }
-      case AnimationDriver.Time: {
-        const frame =
-          this.playingAnimation.config.frames[
-            this.playingAnimation.frameCount - 1
-          ];
-
-        this.playingAnimation.state.elapsed += dt;
-
-        if (this.playingAnimation.state.elapsed >= frame.duration) {
-          this.playingAnimation.frameCount++;
-        }
-
-        break;
-      }
-    }
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    if (!this.playingAnimation) return;
+    if (this.playingAnimation === null) return;
 
     if (this.sprite.scene.art === null)
       throw new Error("art instance is not set on scene object");
@@ -244,8 +250,9 @@ export default class AnimationManager {
       );
 
     const frame =
-      this.playingAnimation.config.frames[this.playingAnimation.frameCount - 1];
+      this.playingAnimation.config.frames[this.playingAnimation.frameCount];
 
+    // console.log(frame, this.playingAnimation.frameCount,this.playingAnimation.config.frames);
     ctx.drawImage(
       image,
       frame.spritesheetX,
@@ -265,9 +272,7 @@ export default class AnimationManager {
       if (!overlayImage) return;
 
       const frame =
-        this.playingAnimation.overlay.frames[
-          this.playingAnimation.frameCount - 1
-        ];
+        this.playingAnimation.overlay.frames[this.playingAnimation.frameCount];
 
       ctx.drawImage(
         image,
@@ -275,8 +280,8 @@ export default class AnimationManager {
         frame.spritesheetY,
         this.sprite.width,
         this.sprite.height,
-        this.sprite.pos.x,
-        this.sprite.pos.y,
+        this.sprite.pos.x + (this.playingAnimation.overlay.dx ?? 0),
+        this.sprite.pos.y + (this.playingAnimation.overlay.dy ?? 0),
         this.sprite.width,
         this.sprite.height,
       );

@@ -1,10 +1,9 @@
 import { Scene, StaticObject } from "./lib";
 import type { Vec2 } from "./lib/types";
-import { randomIndex } from "./utils";
 
-export type ObsticleType = "rail" | "bowl" | "flat" | "square" | "ramp";
+export type ObstacleType = "rail" | "bowl" | "flat" | "square" | "ramp";
 
-export const obsticles: ObsticleType[] = [
+export const obsticles: ObstacleType[] = [
   "rail",
   "bowl",
   "flat",
@@ -37,7 +36,7 @@ export type Trick =
   | "360-shove-it"
   | "360";
 
-export const obsticleTricks: { [k in ObsticleType]: Trick[] } = {
+export const obstacleTricks: { [k in ObstacleType]: Trick[] } = {
   rail: ["50-50-grind", "5-0-grind", "nose-grind"],
   bowl: ["180", "360", "grab", "50-50-grind", "5-0-grind", "nose-grind"],
   flat: ["ollie", "pop-shove-it", "kickflip", "360-shove-it"],
@@ -54,7 +53,7 @@ export const obsticleTricks: { [k in ObsticleType]: Trick[] } = {
   ramp: ["180", "360", "grab"],
 };
 
-export const obsticleTricksSets: { [k in ObsticleType]: Trick[][] } = {
+export const obstacleTricksSets: { [k in ObstacleType]: Trick[][] } = {
   rail: [["50-50-grind", "5-0-grind", "nose-grind"]],
   bowl: [["180", "360", "grab", "50-50-grind", "5-0-grind", "nose-grind"]],
   flat: [["ollie", "pop-shove-it", "kickflip", "360-shove-it"]],
@@ -73,14 +72,18 @@ export const obsticleTricksSets: { [k in ObsticleType]: Trick[][] } = {
   ramp: [["180", "360", "grab"]],
 };
 
-export default class Obsticle extends StaticObject {
-  readonly type: ObsticleType;
+export default class Obstacle extends StaticObject {
+  readonly type: ObstacleType;
 
   private queue: number[];
 
   private isFree: boolean;
 
-  private idlePositions: { pos: Vec2; isFree: boolean }[];
+  private idlePositions: {
+    pos: Vec2;
+    meta: { [key: string]: any };
+    isFree: boolean;
+  }[];
 
   private skaters: { id: number; idlePosIdx: number }[];
 
@@ -88,17 +91,17 @@ export default class Obsticle extends StaticObject {
 
   constructor(
     scene: Scene,
-    type: ObsticleType,
+    type: ObstacleType,
     pos: Vec2,
     width: number,
     height: number,
-    idleSpots: { pos: Vec2; isFree: boolean }[],
+    idleSpots: { pos: Vec2; meta: { [key: string]: any } }[],
   ) {
     super(scene, pos, width, height);
     this.type = type;
     this.queue = [];
     this.isFree = true;
-    this.idlePositions = idleSpots;
+    this.idlePositions = idleSpots.map((i) => ({ ...i, isFree: true }));
     this.currSkater = null;
     this.skaters = [];
   }
@@ -109,8 +112,15 @@ export default class Obsticle extends StaticObject {
 
   isMyTurn(id: number): boolean {
     if (!this.skaters.find((s) => s.id === id))
-      throw new Error("Skater is not at obsticle.");
+      throw new Error("Skater is not at obstacle.");
     return this.isFree && this.queue[0] === id;
+  }
+
+  isStandingInLine(id: number) {
+    if (!this.skaters.find((s) => s.id === id))
+      throw new Error("Skater is not at obstacle.");
+
+    return this.queue.find((i) => i === id) !== undefined;
   }
 
   /**
@@ -118,14 +128,14 @@ export default class Obsticle extends StaticObject {
    */
   skate(id: number) {
     if (!this.skaters.find((s) => s.id === id))
-      throw new Error("Skater is not at obsticle.");
+      throw new Error("Skater is not at obstacle.");
 
     if (this.queue.find((i) => i === id) === undefined)
       throw new Error("You are not in the queue");
 
-    if (this.isMyTurn(id)) throw new Error("Wait for your turn mr");
+    if (!this.isMyTurn(id)) throw new Error("Wait for your turn mr");
 
-    this.currSkater = this.queue.pop()!;
+    this.currSkater = this.queue.shift()!;
 
     this.isFree = false;
   }
@@ -136,10 +146,11 @@ export default class Obsticle extends StaticObject {
    */
   endSkate(id: number) {
     if (!this.skaters.find((s) => s.id === id))
-      throw new Error("Skater is not at obsticle.");
+      throw new Error("Skater is not at obstacle.");
 
     if (this.currSkater !== id)
-      throw new Error("Skater is not skating the obsticle.");
+      throw new Error("Skater is not skating the obstacle.");
+    this.currSkater = null;
 
     this.isFree = true;
   }
@@ -147,7 +158,7 @@ export default class Obsticle extends StaticObject {
   leave(id: number) {
     const skaterIdx = this.skaters.findIndex((s) => s.id === id);
 
-    if (skaterIdx === -1) throw new Error("Skater is not at obsticle.");
+    if (skaterIdx === -1) throw new Error("Skater is not at obstacle.");
 
     this.idlePositions[this.skaters[skaterIdx].idlePosIdx].isFree = true;
 
@@ -161,7 +172,7 @@ export default class Obsticle extends StaticObject {
   getMyIdlePos(id: number): Vec2 {
     const skater = this.skaters.find((s) => s.id === id);
 
-    if (skater === undefined) throw new Error("Skater is not at obsticle.");
+    if (skater === undefined) throw new Error("Skater is not at obstacle.");
 
     const idlePos = this.idlePositions[skater.idlePosIdx];
 
@@ -173,18 +184,22 @@ export default class Obsticle extends StaticObject {
    */
   standInLine(id: number): void {
     if (!this.skaters.find((s) => s.id === id))
-      throw new Error("Skater is not at obsticle!");
+      throw new Error("Skater is not at obstacle!");
+
+    if (this.queue.find((i) => i === id))
+      throw new Error("Skater is already in line");
 
     this.queue.push(id);
+
   }
 
   /**
    * Skater needs to arrive to get an idle position at the obsticle.
    */
   arrive(id: number): Vec2 {
-    if (this.isTooCrowded()) throw new Error("Obsticle is too crowded");
+    if (this.isTooCrowded()) throw new Error("Obstacle is too crowded");
 
-    const idlePosIdx = randomIndex(this.idlePositions.filter((i) => i.isFree));
+    const idlePosIdx = this.idlePositions.findIndex((i) => i.isFree === true);
 
     if (idlePosIdx === -1)
       throw new Error("No idle spot is free, should not happen");
@@ -199,4 +214,35 @@ export default class Obsticle extends StaticObject {
   isTooCrowded(): boolean {
     return this.skaters.length === this.idlePositions.length;
   }
+}
+
+export enum RampSide {
+  TOP_LEFT = "top-left",
+  TOP_RIGHT = "top-right",
+  BOTTOM_RIGHT = "bottom-right",
+  BOTTOM_LEFT = "bottom-left",
+}
+
+export function getRampSide(
+  obstacle: Obstacle,
+  tileSize: number,
+  idlePos: Vec2,
+): RampSide {
+  if (obstacle.type !== "ramp") throw new Error("Obstacle is not a ramp");
+  const left = obstacle.pos.x;
+  const right = obstacle.pos.x + obstacle.width - tileSize;
+  const top = obstacle.pos.y + tileSize;
+  const bottom = obstacle.pos.y + obstacle.height - tileSize * 3;
+
+  if (idlePos.x === left && idlePos.y === top) {
+    return RampSide.TOP_LEFT;
+  } else if (idlePos.x === right && idlePos.y === top) {
+    return RampSide.TOP_RIGHT;
+  } else if (idlePos.x === right && idlePos.y === bottom) {
+    return RampSide.BOTTOM_RIGHT;
+  } else if (idlePos.x === left && idlePos.y === bottom) {
+    return RampSide.BOTTOM_LEFT;
+  }
+
+  throw Error("getRampSide is not written correctly");
 }

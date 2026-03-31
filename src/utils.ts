@@ -18,3 +18,14 @@ export function randomIndex<T>(arr: T[]): number {
     
     return Math.floor(arr.length * Math.random());
 }
+
+export function randomOdd(max: number) {
+    let num = Math.round(Math.random() * max);
+
+    if(num % 2 === 0) {
+        if(num === 0) num++;
+        else num--;
+    }
+
+    return num;
+}

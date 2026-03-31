@@ -22,11 +22,7 @@ export default class StaticObject extends ArtObject {
     this.halfWidth = width / 2;
     this.halfHeight = height / 2;
   }
-
-  update(): void {
-    // static image → no update needed
-  }
-
+  
   draw(_: CanvasRenderingContext2D): void {
     // Don't have to draw anything since this is probably part of the tilemap already
   }
