@@ -36,13 +36,11 @@ if(audioPlayerEl) {
 }
 
 
-
 addEventListener("keydown", (e) => {
-
     if(e.key === "f") {
         art.enterFullScreen();
     } 
-})
+});
 
 // TODO:
 // 1. Implement Play and Pause scenes

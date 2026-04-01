@@ -7,7 +7,7 @@ import Skater from "./Skater.ts";
 
 export default class Play extends Scene {
   tilemap: Tilemap;
-  obsticles: Obstacle[];
+  obstacles: Obstacle[];
   parkGrid: (0 | 1)[][];
   skaters!: Skater[];
   tileSize: number;
@@ -15,7 +15,7 @@ export default class Play extends Scene {
   constructor(tilemap: Tilemap) {
     super();
     this.tilemap = tilemap;
-    this.obsticles = [];
+    this.obstacles = [];
     this.parkGrid = [];
     this.tileSize = 16;
     this.skaters = [];
@@ -37,7 +37,7 @@ export default class Play extends Scene {
 
     this.tileSize = this.art!.tileSize;
 
-    const obsticles: Map<string, Obstacle> = new Map();
+    const obstacles: Map<string, Obstacle> = new Map();
 
     for (const t of this.tilemap.attributes) {
       if (t.attributes.hasOwnProperty("obsticle")) {
@@ -51,7 +51,7 @@ export default class Play extends Scene {
             t1.attributes.hasOwnProperty("isIdlePos"),
         );
 
-        obsticles.set(
+        obstacles.set(
           t.attributes["id"],
           new Obstacle(
             this,
@@ -78,10 +78,10 @@ export default class Play extends Scene {
       }
     }
 
-    this.obsticles = new Array(...obsticles.values());
+    this.obstacles = new Array(...obstacles.values());
 
     // Make obsticle tiles not cruisable
-    for (const o of this.obsticles) {
+    for (const o of this.obstacles) {
       const startRow = o.pos.y / this.tileSize;
       const startCol = o.pos.x / this.tileSize;
 
@@ -111,7 +111,11 @@ export default class Play extends Scene {
       this.tilemap.height,
     );
 
-    for (const s of this.skaters) {
+    const sorted = this.skaters.toSorted((s1, s2) => {
+      return s1.pos.y - s2.pos.y;
+    })
+
+    for (const s of sorted) {
       s.draw(ctx);
     }
   }

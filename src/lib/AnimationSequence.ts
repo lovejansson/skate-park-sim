@@ -16,6 +16,7 @@ type TransitionCondition<T extends TransitionType> =
 type SequenceAnimation<T extends TransitionType> = {
   type: T;
   anim: string;
+  overlay?: { name: string; dx?: number; dy?: number; drawBehind?: boolean };
   transition: TransitionCondition<T>;
 };
 
@@ -61,12 +62,14 @@ export default class AnimationSequence {
 
   static createAnim<T extends TransitionType>(config: {
     anim: string;
+    overlay?: { name: string; dx?: number; dy?: number; drawBehind?: boolean,drawOnTop?: boolean };
     type: T;
     transition: TransitionCondition<T>;
   }): SequenceAnimation<T> {
     return {
       type: config.type,
       anim: config.anim,
+      overlay: config.overlay,
       transition: config.transition,
     };
   }
@@ -135,7 +138,6 @@ export default class AnimationSequence {
   }
 
   private initPlayingAnimation() {
-
     const anim = this.sequence[this.currIdx];
 
     switch (anim.type) {
@@ -156,6 +158,6 @@ export default class AnimationSequence {
         break;
     }
 
-    this.sprite.animations.play(anim.anim);
+    this.sprite.animations.play(anim.anim, anim.overlay);
   }
 }

@@ -1,7 +1,6 @@
 # Todo
 
-
-* Handling of overlays in the animation system
+* The transitions between skating a trick and going idle needs work, like flipping up the board and rolling up to the ramp an such.
 
 Skate system overview 
 

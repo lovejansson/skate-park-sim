@@ -4,6 +4,7 @@ import {
   type AnimationConfig,
   type AnimationConfigT,
   type AnimationFrame,
+  type AnimationOverlay,
 } from "./lib/AnimationManager";
 import type { Vec2 } from "./lib/types";
 import type Play from "./Play";
@@ -30,13 +31,17 @@ export default class Skater extends Sprite {
     this.who = who;
     this.skill = skill;
 
-    const animations = createAnimationsFromAseprite(
+    const { animations, overlays } = createAnimationsFromAseprite(
       spritesheet,
       animationSettings,
     );
 
     for (const [name, anim] of Object.entries(animations)) {
-      this.animations.create(name, anim as AnimationConfig);
+      this.animations.createAnim(name, anim as AnimationConfig);
+    }
+
+    for (const [name, overlay] of Object.entries(overlays)) {
+      this.animations.createOverlay(name, overlay);
     }
 
     this.action = new SkatingAtPark(this);
@@ -50,129 +55,242 @@ export default class Skater extends Sprite {
 
 const animationSettings: Record<
   string,
-  { driver: AnimationDriver; repeat: number | boolean }
+  | { driver: AnimationDriver; repeat: number | boolean; isAnim: true }
+  | { isAnim: false }
 > = {
   // Time-driven animations, repeating
-  "walk-n": { driver: AnimationDriver.TimeMovementSync, repeat: true },
-  "walk-s": { driver: AnimationDriver.TimeMovementSync, repeat: true },
-  "idle-stand-n": { driver: AnimationDriver.Time, repeat: true },
-  "idle-stand-s": { driver: AnimationDriver.Time, repeat: true },
-  "idle-stand-w": { driver: AnimationDriver.Time, repeat: true },
-  "idle-stand-e": { driver: AnimationDriver.Time, repeat: true },
+  "walk-n": {
+    driver: AnimationDriver.TimeMovementSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "walk-s": {
+    driver: AnimationDriver.TimeMovementSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "walk-board-n": {
+    driver: AnimationDriver.TimeMovementSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "walk-board-s": {
+    driver: AnimationDriver.TimeMovementSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "idle-stand-n": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
+  "idle-stand-s": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
+  "idle-stand-w": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
+  "idle-stand-e": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
 
   // Time-driven animations, no repeat
-  "180-f": { driver: AnimationDriver.Time, repeat: false },
-  "180-b": { driver: AnimationDriver.Time, repeat: false },
-  "360-f": { driver: AnimationDriver.Time, repeat: false },
-  "360-b": { driver: AnimationDriver.Time, repeat: false },
-  "grab-f": { driver: AnimationDriver.Time, repeat: false },
-  "grab-b": { driver: AnimationDriver.Time, repeat: false },
+  "180-f": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
+  "180-b": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
+  "360-f": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
+  "360-b": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
+  "grab-f": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
+  "grab-b": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
 
-  // Distance-based (cruise-ramp)
-  "cruise-ramp-f-e": { driver: AnimationDriver.Distance, repeat: false },
-  "cruise-ramp-f-w": { driver: AnimationDriver.Distance, repeat: false },
-  "cruise-ramp-b-e": { driver: AnimationDriver.Distance, repeat: false },
-  "cruise-ramp-b-w": { driver: AnimationDriver.Distance, repeat: false },
+  // Distance-based (cruise-ramp),
+  "cruise-ramp-f-e": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-ramp-f-w": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-ramp-b-e": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-ramp-b-w": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
 
-  "cruise-ramp-f-e-start": { driver: AnimationDriver.Distance, repeat: false },
-  "cruise-ramp-f-w-start": { driver: AnimationDriver.Distance, repeat: false },
-  "cruise-ramp-b-e-start": { driver: AnimationDriver.Distance, repeat: false },
-  "cruise-ramp-b-w-start": { driver: AnimationDriver.Distance, repeat: false },
+  "cruise-ramp-f-e-start": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-ramp-f-w-start": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-ramp-b-e-start": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-ramp-b-w-start": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
 
-  "cruise-ramp-f-e-mid": { driver: AnimationDriver.Distance, repeat: false },
-  "cruise-ramp-f-w-mid": { driver: AnimationDriver.Distance, repeat: false },
-  "cruise-ramp-b-e-mid": { driver: AnimationDriver.Distance, repeat: false },
-  "cruise-ramp-b-w-mid": { driver: AnimationDriver.Distance, repeat: false },
+  "cruise-ramp-f-e-mid": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-ramp-f-w-mid": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-ramp-b-e-mid": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-ramp-b-w-mid": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
+
+  "ramp-land-w": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
+  "ramp-land-e": {
+    driver: AnimationDriver.Distance,
+    repeat: false,
+    isAnim: true,
+  },
 
   // Time + movement sync
-  "climb-up": { driver: AnimationDriver.TimeMovementSync, repeat: true },
-  "climb-down": { driver: AnimationDriver.TimeMovementSync, repeat: true },
+  "climb-up": {
+    driver: AnimationDriver.TimeMovementSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "climb-down": {
+    driver: AnimationDriver.TimeMovementSync,
+    repeat: true,
+    isAnim: true,
+  },
 
-  "ramp-land-w": { driver: AnimationDriver.Distance, repeat: false },
-  "ramp-land-e": { driver: AnimationDriver.Distance, repeat: false },
+  // Overlays
 
-  "board-carry-r": { driver: AnimationDriver.Distance, repeat: false },
-  "board-carry-l": { driver: AnimationDriver.Distance, repeat: false },
+  "board-carry-r": { isAnim: false },
+  "board-carry-l": { isAnim: false },
+  "board-carry-c": { isAnim: false },
 };
 
 function createAnimationsFromAseprite(
   asepriteData: AsepriteJSON,
   animationSettings: Record<
     string,
-    { driver: AnimationDriver; repeat: number | boolean }
+    | { driver: AnimationDriver; repeat: number | boolean; isAnim: true }
+    | { isAnim: false }
   >,
-): Record<string, AnimationConfigT<AnimationDriver>> {
+): {
+  animations: Record<string, AnimationConfigT<AnimationDriver>>;
+  overlays: Record<string, AnimationOverlay>;
+} {
   const animations: Record<string, AnimationConfigT<AnimationDriver>> = {};
+  const overlays: Record<string, AnimationOverlay> = {};
 
   for (const tag of asepriteData.meta.frameTags) {
     const settings = animationSettings[tag.name] || {
       driver: AnimationDriver.Time,
       repeat: true,
     };
-    const frames: AnimationFrame[] = [];
 
-    const isCruiseRamp = tag.name.startsWith("cruise-ramp");
-    const isLandRamp = tag.name.startsWith("ramp-land");
-    const xDirMultiplier = tag.name.includes("-w") ? -1 : 1;
+    if (settings.isAnim) {
+      const frames: AnimationFrame[] = [];
 
-    // Predefined motion deltas (without multiplier)
-    const cruiseMotion = [
-      { dx: 7, dy: 9 },
-      { dx: 9, dy: 14 },
-      { dx: 12, dy: 6 },
-      { dx: 18, dy: 4 },
-      { dx: 16, dy: 0 },
-      { dx: 18, dy: -4 },
-      { dx: 12, dy: -6 },
-      { dx: 9, dy: -14 },
-      { dx: 7, dy: -9 },
-      { dx: 0, dy: 0 },
-    ];
+      const isCruiseRamp = tag.name.startsWith("cruise-ramp");
+      const isLandRamp = tag.name.startsWith("ramp-land");
+      const xDirMultiplier = tag.name.includes("-w") ? -1 : 1;
 
-    for (let i = tag.from; i <= tag.to; i++) {
-      // I need to have an equal sign in for loop condition to include tags with only one frame
-      if (i === asepriteData.frames.length) continue;
+      // Predefined motion deltas (without multiplier)
+      const cruiseMotion = [
+        { dx: 7, dy: 9 },
+        { dx: 9, dy: 14 },
+        { dx: 12, dy: 6 },
+        { dx: 18, dy: 4 },
+        { dx: 16, dy: 0 },
+        { dx: 18, dy: -4 },
+        { dx: 12, dy: -6 },
+        { dx: 9, dy: -14 },
+        { dx: 7, dy: -9 },
+        { dx: 0, dy: 0 },
+      ];
 
-      const frameData = asepriteData.frames[i].frame;
-      const duration = asepriteData.frames[i].duration;
+      for (let i = tag.from; i <= tag.to; i++) {
+        // I need to have an equal sign in for loop condition to include tags with only one frame
+        if (i === asepriteData.frames.length) continue;
 
-      if (settings.driver === AnimationDriver.Distance) {
-        if (isCruiseRamp) {
-          const delta = cruiseMotion[i - tag.from];
+        const frameData = asepriteData.frames[i].frame;
+        const duration = asepriteData.frames[i].duration;
+
+        if (settings.driver === AnimationDriver.Distance) {
+          if (isCruiseRamp) {
+            const delta = cruiseMotion[i - tag.from];
+            frames.push({
+              spritesheetX: frameData.x,
+              spritesheetY: frameData.y,
+              duration,
+              dx: delta.dx * xDirMultiplier,
+              dy: delta.dy,
+            });
+          } else if (isLandRamp) {
+            for (const { dx, dy } of [{ dy: 0, dx: 0 * xDirMultiplier }]) {
+              frames.push({
+                spritesheetX: frameData.x,
+                spritesheetY: frameData.y,
+                duration: 500,
+                dx,
+                dy,
+              });
+            }
+          }
+        } else {
           frames.push({
             spritesheetX: frameData.x,
             spritesheetY: frameData.y,
             duration,
-            dx: delta.dx * xDirMultiplier,
-            dy: delta.dy,
           });
-        } else if (isLandRamp) {
-          for (const { dx, dy } of [{ dy: 0, dx: 0 * xDirMultiplier }]) {
-            frames.push({
-              spritesheetX: frameData.x,
-              spritesheetY: frameData.y,
-              duration: 500,
-              dx,
-              dy,
-            });
-          }
         }
-      } else {
+      }
+
+      animations[tag.name] = {
+        driver: settings.driver,
+        repeat: settings.repeat,
+        spritesheet: "skater",
+        frames,
+      };
+    } else {
+      const frames: { spritesheetX: number; spritesheetY: number }[] = [];
+
+      for (let i = tag.from; i <= tag.to; i++) {
+        // I need to have an equal sign in for loop condition to include tags with only one frame
+        if (i === asepriteData.frames.length) continue;
+        const frameData = asepriteData.frames[i].frame;
         frames.push({
           spritesheetX: frameData.x,
           spritesheetY: frameData.y,
-          duration,
         });
       }
-    }
 
-    animations[tag.name] = {
-      driver: settings.driver,
-      repeat: settings.repeat,
-      spritesheet: "skater",
-      frames,
-    };
+      console.log("frames", frames);
+
+      overlays[tag.name] = {
+        spritesheet: "skater",
+        frames,
+      };
+    }
   }
 
-  return animations;
+  return { animations, overlays };
 }

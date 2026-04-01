@@ -53,6 +53,10 @@ type AnimationStateT<T extends AnimationDriver> =
           elapsed: number;
         };
 
+export type AnimationOverlay = {
+  spritesheet: string;
+  frames: { spritesheetX: number; spritesheetY: number }[];
+};
 type PlayingAnimationT<T extends AnimationDriver> = {
   driver: T;
   key: string;
@@ -60,12 +64,7 @@ type PlayingAnimationT<T extends AnimationDriver> = {
   state: AnimationStateT<T>;
   frameCount: number;
   loopCount: number;
-  overlay?: {
-    spritesheet: string;
-    frames: { spritesheetX: number; spritesheetY: number }[];
-    dx?: number;
-    dy?: number;
-  };
+  overlay?: AnimationOverlay & { dx?: number; dy?: number, drawBehind?: boolean, drawOnTop?: boolean, name: string };
 };
 
 type PlayingAnimation =
@@ -81,36 +80,45 @@ export type AnimationConfig =
 export default class AnimationManager {
   sprite: Sprite;
   animations: Map<string, AnimationConfig>;
+  overlays: Map<string, AnimationOverlay>;
   playingAnimation: PlayingAnimation | null;
 
   constructor(sprite: Sprite) {
     this.sprite = sprite;
     this.animations = new Map();
+    this.overlays = new Map();
     this.playingAnimation = null;
   }
 
-  create(key: string, config: AnimationConfig) {
-    this.animations.set(key, config);
+  createAnim(name: string, config: AnimationConfig) {
+    this.animations.set(name, config);
+  }
+
+  createOverlay(name: string, overlay: AnimationOverlay) {
+    this.overlays.set(name, overlay);
   }
 
   play(
-    key: string,
-    overlay?: {
-      spritesheet: string;
-      frames: { spritesheetX: number; spritesheetY: number }[];
-    },
+    name: string,
+    overlay?: { name: string; dx?: number; dy?: number; drawBehind?: boolean },
   ) {
-    const anim = this.animations.get(key);
+    const anim = this.animations.get(name);
 
-    if (!anim) throw new AnimationNotAddedError(key);
+    const animationOverlay =
+      overlay !== undefined ? this.overlays.get(overlay.name) : undefined;
+
+    if (!anim) throw new AnimationNotAddedError(name);
 
     switch (anim.driver) {
       case AnimationDriver.Distance:
         this.playingAnimation = {
           driver: anim.driver,
-          key,
+          key: name,
           config: anim,
-          overlay,
+          overlay:
+            animationOverlay && overlay
+              ? { ...animationOverlay, ...overlay }
+              : undefined,
           frameCount: 0,
           loopCount: 0,
           state: { startX: 0, startY: 0, elapsed: 0 },
@@ -119,9 +127,12 @@ export default class AnimationManager {
       case AnimationDriver.TimeMovementSync:
         this.playingAnimation = {
           driver: anim.driver,
-          key,
+          key: name,
           config: anim,
-          overlay,
+          overlay:
+            animationOverlay && overlay
+              ? { ...animationOverlay, ...overlay }
+              : undefined,
           frameCount: 0,
           loopCount: 0,
           state: { elapsed: 0 },
@@ -130,9 +141,12 @@ export default class AnimationManager {
       case AnimationDriver.Time:
         this.playingAnimation = {
           driver: anim.driver,
-          key,
+          key: name,
           config: anim,
-          overlay,
+          overlay:
+            animationOverlay && overlay
+              ? { ...animationOverlay, ...overlay }
+              : undefined,
           frameCount: 0,
           loopCount: 0,
           state: { elapsed: 0 },
@@ -141,8 +155,8 @@ export default class AnimationManager {
     }
   }
 
-  stop(key: string) {
-    if (this.playingAnimation && key === this.playingAnimation.key) {
+  stop(name: string) {
+    if (this.playingAnimation && name === this.playingAnimation.key) {
       this.playingAnimation = null;
     }
   }
@@ -151,8 +165,8 @@ export default class AnimationManager {
     return this.playingAnimation?.loopCount ?? 0;
   }
 
-  isPlaying(key: string): boolean {
-    return this.playingAnimation?.key === key;
+  isPlaying(name: string): boolean {
+    return this.playingAnimation?.key === name;
   }
 
   update(dt: number): void {
@@ -249,6 +263,27 @@ export default class AnimationManager {
         this.playingAnimation.config.spritesheet,
       );
 
+    if (this.playingAnimation.overlay && this.playingAnimation.overlay.drawBehind) {
+      const overlaySpritesheet = this.sprite.scene.art.images.get(
+        this.playingAnimation.overlay.spritesheet,
+      );
+      if (!overlaySpritesheet) return;
+
+      const frame = this.playingAnimation.overlay.frames[0];
+
+      ctx.drawImage(
+        image,
+        frame.spritesheetX,
+        frame.spritesheetY,
+        this.sprite.width,
+        this.sprite.height,
+        this.sprite.pos.x + (this.playingAnimation.overlay.dx ?? 0),
+        this.sprite.pos.y + (this.playingAnimation.overlay.dy ?? 0),
+        this.sprite.width,
+        this.sprite.height,
+      );
+    }
+
     const frame =
       this.playingAnimation.config.frames[this.playingAnimation.frameCount];
 
@@ -265,14 +300,13 @@ export default class AnimationManager {
       this.sprite.height,
     );
 
-    if (this.playingAnimation.overlay) {
-      const overlayImage = this.sprite.scene.art.images.get(
+    if (this.playingAnimation.overlay && this.playingAnimation.overlay.drawOnTop) {
+      const overlaySpritesheet = this.sprite.scene.art.images.get(
         this.playingAnimation.overlay.spritesheet,
       );
-      if (!overlayImage) return;
+      if (!overlaySpritesheet) return;
 
-      const frame =
-        this.playingAnimation.overlay.frames[this.playingAnimation.frameCount];
+      const frame = this.playingAnimation.overlay.frames[0];
 
       ctx.drawImage(
         image,

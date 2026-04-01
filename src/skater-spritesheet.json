@@ -702,7 +702,7 @@
     "duration": 150
    },
    {
-    "filename": "skater-spritesheet #walk-s 0.aseprite",
+    "filename": "skater-spritesheet #walk-board-n 0.aseprite",
     "frame": { "x": 0, "y": 480, "w": 16, "h": 32 },
     "rotated": false,
     "trimmed": false,
@@ -711,7 +711,7 @@
     "duration": 150
    },
    {
-    "filename": "skater-spritesheet #walk-s 1.aseprite",
+    "filename": "skater-spritesheet #walk-board-n 1.aseprite",
     "frame": { "x": 16, "y": 480, "w": 16, "h": 32 },
     "rotated": false,
     "trimmed": false,
@@ -720,7 +720,7 @@
     "duration": 150
    },
    {
-    "filename": "skater-spritesheet #walk-s 2.aseprite",
+    "filename": "skater-spritesheet #walk-board-n 2.aseprite",
     "frame": { "x": 32, "y": 480, "w": 16, "h": 32 },
     "rotated": false,
     "trimmed": false,
@@ -729,7 +729,7 @@
     "duration": 150
    },
    {
-    "filename": "skater-spritesheet #walk-s 3.aseprite",
+    "filename": "skater-spritesheet #walk-board-n 3.aseprite",
     "frame": { "x": 48, "y": 480, "w": 16, "h": 32 },
     "rotated": false,
     "trimmed": false,
@@ -738,7 +738,7 @@
     "duration": 150
    },
    {
-    "filename": "skater-spritesheet #ramp-land-e.aseprite",
+    "filename": "skater-spritesheet #walk-s 0.aseprite",
     "frame": { "x": 0, "y": 512, "w": 16, "h": 32 },
     "rotated": false,
     "trimmed": false,
@@ -747,7 +747,34 @@
     "duration": 150
    },
    {
-    "filename": "skater-spritesheet #ramp-land-w.aseprite",
+    "filename": "skater-spritesheet #walk-s 1.aseprite",
+    "frame": { "x": 16, "y": 512, "w": 16, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 32 },
+    "sourceSize": { "w": 16, "h": 32 },
+    "duration": 150
+   },
+   {
+    "filename": "skater-spritesheet #walk-s 2.aseprite",
+    "frame": { "x": 32, "y": 512, "w": 16, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 32 },
+    "sourceSize": { "w": 16, "h": 32 },
+    "duration": 150
+   },
+   {
+    "filename": "skater-spritesheet #walk-s 3.aseprite",
+    "frame": { "x": 48, "y": 512, "w": 16, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 32 },
+    "sourceSize": { "w": 16, "h": 32 },
+    "duration": 150
+   },
+   {
+    "filename": "skater-spritesheet #walk-board-s 0.aseprite",
     "frame": { "x": 0, "y": 544, "w": 16, "h": 32 },
     "rotated": false,
     "trimmed": false,
@@ -756,7 +783,34 @@
     "duration": 150
    },
    {
-    "filename": "skater-spritesheet #board-carry-r.aseprite",
+    "filename": "skater-spritesheet #walk-board-s 1.aseprite",
+    "frame": { "x": 16, "y": 544, "w": 16, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 32 },
+    "sourceSize": { "w": 16, "h": 32 },
+    "duration": 150
+   },
+   {
+    "filename": "skater-spritesheet #walk-board-s 2.aseprite",
+    "frame": { "x": 32, "y": 544, "w": 16, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 32 },
+    "sourceSize": { "w": 16, "h": 32 },
+    "duration": 150
+   },
+   {
+    "filename": "skater-spritesheet #walk-board-s 3.aseprite",
+    "frame": { "x": 48, "y": 544, "w": 16, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 32 },
+    "sourceSize": { "w": 16, "h": 32 },
+    "duration": 150
+   },
+   {
+    "filename": "skater-spritesheet #ramp-land-e.aseprite",
     "frame": { "x": 0, "y": 576, "w": 16, "h": 32 },
     "rotated": false,
     "trimmed": false,
@@ -765,8 +819,35 @@
     "duration": 150
    },
    {
-    "filename": "skater-spritesheet #board-carry-left.aseprite",
+    "filename": "skater-spritesheet #ramp-land-w.aseprite",
     "frame": { "x": 0, "y": 608, "w": 16, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 32 },
+    "sourceSize": { "w": 16, "h": 32 },
+    "duration": 150
+   },
+   {
+    "filename": "skater-spritesheet #board-carry-r.aseprite",
+    "frame": { "x": 0, "y": 640, "w": 16, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 32 },
+    "sourceSize": { "w": 16, "h": 32 },
+    "duration": 150
+   },
+   {
+    "filename": "skater-spritesheet #board-carry-l.aseprite",
+    "frame": { "x": 0, "y": 672, "w": 16, "h": 32 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 32 },
+    "sourceSize": { "w": 16, "h": 32 },
+    "duration": 150
+   },
+   {
+    "filename": "skater-spritesheet #board-carry-c.aseprite",
+    "frame": { "x": 0, "y": 704, "w": 16, "h": 32 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 32 },
@@ -779,7 +860,7 @@
   "version": "1.3.16.1-x64",
   "image": "skater-spritesheet.png",
   "format": "RGBA8888",
-  "size": { "w": 160, "h": 640 },
+  "size": { "w": 160, "h": 736 },
   "scale": "1",
   "frameTags": [
    { "name": "cruise-ramp-f-w", "from": 0, "to": 9, "direction": "forward", "color": "#000000ff" },
@@ -797,11 +878,14 @@
    { "name": "idle-stand-w", "from": 66, "to": 69, "direction": "forward", "color": "#000000ff" },
    { "name": "idle-stand-e", "from": 70, "to": 73, "direction": "forward", "color": "#000000ff" },
    { "name": "walk-n", "from": 74, "to": 77, "direction": "forward", "color": "#000000ff" },
-   { "name": "walk-s", "from": 78, "to": 81, "direction": "forward", "color": "#000000ff" },
-   { "name": "ramp-land-e", "from": 82, "to": 82, "direction": "forward", "color": "#000000ff" },
-   { "name": "ramp-land-w", "from": 83, "to": 83, "direction": "forward", "color": "#000000ff" },
-   { "name": "board-carry-r", "from": 84, "to": 84, "direction": "forward", "color": "#000000ff" },
-   { "name": "board-carry-left", "from": 85, "to": 85, "direction": "forward", "color": "#000000ff" }
+   { "name": "walk-board-n", "from": 78, "to": 81, "direction": "forward", "color": "#000000ff" },
+   { "name": "walk-s", "from": 82, "to": 85, "direction": "forward", "color": "#000000ff" },
+   { "name": "walk-board-s", "from": 86, "to": 89, "direction": "forward", "color": "#000000ff" },
+   { "name": "ramp-land-e", "from": 90, "to": 90, "direction": "forward", "color": "#000000ff" },
+   { "name": "ramp-land-w", "from": 91, "to": 91, "direction": "forward", "color": "#000000ff" },
+   { "name": "board-carry-r", "from": 92, "to": 92, "direction": "forward", "color": "#000000ff" },
+   { "name": "board-carry-l", "from": 93, "to": 93, "direction": "forward", "color": "#000000ff" },
+   { "name": "board-carry-c", "from": 94, "to": 94, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "cruise-ramp-f-w" },
