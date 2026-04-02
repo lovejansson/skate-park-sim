@@ -23,11 +23,11 @@ export default class Play extends Scene {
 
   async init() {
     this.skaters.push(new Skater(this, { x: 6 * 16, y: 9 * 16 }, "sickan", 5));
-    this.skaters.push(new Skater(this, { x: 6 * 16, y: 9 * 16 }, "doris", 5));
-    this.skaters.push(new Skater(this, { x: 6 * 16, y: 9 * 16 }, "harry", 5));
-    this.skaters.push(
-      new Skater(this, { x: 6 * 16, y: 9 * 16 }, "vanheden", 5),
-    );
+    // this.skaters.push(new Skater(this, { x: 6 * 16, y: 9 * 16 }, "doris", 5));
+    // this.skaters.push(new Skater(this, { x: 6 * 16, y: 9 * 16 }, "harry", 5));
+    // this.skaters.push(
+    //   new Skater(this, { x: 6 * 16, y: 9 * 16 }, "vanheden", 5),
+    // );
 
     this.art!.images.add("tilemap", this.tilemap.tilemap);
     this.art!.images.add("skater", "/skater-spritesheet.png");
@@ -40,14 +40,14 @@ export default class Play extends Scene {
     const obstacles: Map<string, Obstacle> = new Map();
 
     for (const t of this.tilemap.attributes) {
-      if (t.attributes.hasOwnProperty("obsticle")) {
+      if (t.attributes.hasOwnProperty("obstacle")) {
         if (!t.attributes.hasOwnProperty("id"))
-          throw new Error("tilemap obsticle has no id");
+          throw new Error("tilemap obstacle has no id");
 
         const idlePositions = this.tilemap.attributes.filter(
           (t1) =>
-            t1.attributes.hasOwnProperty("obsticleId") &&
-            t1.attributes["obsticleId"] === t.attributes["id"] &&
+            t1.attributes.hasOwnProperty("obstacleId") &&
+            t1.attributes["obstacleId"] === t.attributes["id"] &&
             t1.attributes.hasOwnProperty("isIdlePos"),
         );
 
@@ -55,7 +55,7 @@ export default class Play extends Scene {
           t.attributes["id"],
           new Obstacle(
             this,
-            t.attributes["obsticle"] as ObstacleType,
+            t.attributes["obstacle"] as ObstacleType,
             t.pos as Vec2,
             parseInt(t.attributes["width"]),
             parseInt(t.attributes["height"]),
@@ -82,18 +82,24 @@ export default class Play extends Scene {
 
     // Make obsticle tiles not cruisable
     for (const o of this.obstacles) {
-      const startRow = o.pos.y / this.tileSize;
-      const startCol = o.pos.x / this.tileSize;
+      const startRow = o.pos.y / this.tileSize + (o.type === "rail" ? -1 : 0);
+      const startCol = o.pos.x / this.tileSize + (o.type === "rail" ? -1 : 0);
+      const endRow = startRow + o.height / this.tileSize;
+      const endCol =
+        startCol + o.width / this.tileSize + (o.type === "rail" ? 1 : 0);
 
-      for (let r = startRow; r < startRow + o.height / this.tileSize; ++r) {
-        for (let c = startCol; c < startCol + o.width / this.tileSize; ++c) {
+      for (let r = startRow; r <= endRow; ++r) {
+        for (let c = startCol; c <= endCol; ++c) {
           this.parkGrid[r][c] = 1;
         }
       }
+
+      if (o.type === "rail") {
+      }
     }
 
-    // console.log(this.obsticles);
-    // console.log(this.parkGrid);
+    console.log(this.obstacles);
+    console.log(this.parkGrid);
   }
 
   update(dt: number) {
@@ -113,7 +119,7 @@ export default class Play extends Scene {
 
     const sorted = this.skaters.toSorted((s1, s2) => {
       return s1.pos.y - s2.pos.y;
-    })
+    });
 
     for (const s of sorted) {
       s.draw(ctx);

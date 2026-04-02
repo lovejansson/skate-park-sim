@@ -1,11 +1,21 @@
-import type { Vec2 } from "./lib/types";
+import type { Cell, Vec2 } from "./lib/types";
 
 export function isSamePos(pos1: Vec2, pos2: Vec2) {
   return pos1.x === pos2.x && pos1.y === pos2.y;
 }
 
 export function posToCell(pos: Vec2, tileSize: number) {
-  return { row: pos.y / tileSize, col: pos.x / tileSize };
+  return {
+    row: Math.round(pos.y / tileSize),
+    col: Math.round(pos.x / tileSize),
+  };
+}
+
+export function cellToPos(cell: Cell, tileSize: number) {
+  return {
+    y: Math.round(cell.row * tileSize),
+    x: Math.round(cell.col * tileSize),
+  };
 }
 
 export function randomEl<T>(arr: T[]): T | null {
@@ -31,4 +41,12 @@ export function randomOdd(max: number) {
   }
 
   return num;
+}
+
+export function getPosDiff(pos1: Vec2, pos2: Vec2): Vec2 {
+  return { x: pos1.x - pos2.x, y: pos1.y - pos2.y };
+}
+
+export function randomBool() {
+  return Math.random() > 0.5;
 }

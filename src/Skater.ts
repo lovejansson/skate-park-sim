@@ -33,7 +33,7 @@ export default class Skater extends Sprite {
 
     const { animations, overlays } = createAnimationsFromAseprite(
       spritesheet,
-      animationSettings,
+      AnimationSettings,
     );
 
     for (const [name, anim] of Object.entries(animations)) {
@@ -53,29 +53,42 @@ export default class Skater extends Sprite {
   }
 }
 
-const animationSettings: Record<
+/**
+ * Animation integration
+ *
+ * The exported Aseprite JSON file is used to create the animations. It contains a list of tag names which refers to an animation and contains references to which frames are used in that animation.
+ *
+ * - Each frame has data duration and spritesheet position x,y among other attributes.
+ *
+ * - The AnimationsSettings is a lookup record for the settings of each animation that are used by the AnimationManager. Each key maps to a tag name in the Aseprite JSON file.
+ *
+ * - Motions is another lookup record for motion series that is used by the animations with animation driver type Distance.
+ *
+ */
+
+const AnimationSettings: Record<
   string,
   | { driver: AnimationDriver; repeat: number | boolean; isAnim: true }
   | { isAnim: false }
 > = {
   // Time-driven animations, repeating
   "walk-n": {
-    driver: AnimationDriver.TimeMovementSync,
+    driver: AnimationDriver.TimePosVelSync,
     repeat: true,
     isAnim: true,
   },
   "walk-s": {
-    driver: AnimationDriver.TimeMovementSync,
+    driver: AnimationDriver.TimePosVelSync,
     repeat: true,
     isAnim: true,
   },
   "walk-board-n": {
-    driver: AnimationDriver.TimeMovementSync,
+    driver: AnimationDriver.TimePosVelSync,
     repeat: true,
     isAnim: true,
   },
   "walk-board-s": {
-    driver: AnimationDriver.TimeMovementSync,
+    driver: AnimationDriver.TimePosVelSync,
     repeat: true,
     isAnim: true,
   },
@@ -90,91 +103,157 @@ const animationSettings: Record<
   "360-f": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
   "360-b": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
   "grab-f": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
-  "grab-b": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
+  "kickflip-f": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: false,
+    isAnim: true,
+  },
+  "kickflip-b": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: false,
+    isAnim: true,
+  },
+  "shove-it-f": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: false,
+    isAnim: true,
+  },
+  "shove-it-b": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: false,
+    isAnim: true,
+  },
+  "nose-grind-f-w": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "nose-grind-b-w": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "nose-grind-f-e": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "nose-grind-b-e": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
 
-  // Distance-based (cruise-ramp),
+  "cruise-f-e": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "cruise-f-w": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "cruise-b-e": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "cruise-b-w": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
+
+  // Distance-based (cruise-ramp for example),
   "cruise-ramp-f-e": {
-    driver: AnimationDriver.Distance,
+    driver: AnimationDriver.TimePosDeltaSync,
     repeat: false,
     isAnim: true,
   },
   "cruise-ramp-f-w": {
-    driver: AnimationDriver.Distance,
+    driver: AnimationDriver.TimePosDeltaSync,
     repeat: false,
     isAnim: true,
   },
   "cruise-ramp-b-e": {
-    driver: AnimationDriver.Distance,
+    driver: AnimationDriver.TimePosDeltaSync,
     repeat: false,
     isAnim: true,
   },
   "cruise-ramp-b-w": {
-    driver: AnimationDriver.Distance,
+    driver: AnimationDriver.TimePosDeltaSync,
     repeat: false,
     isAnim: true,
   },
 
-  "cruise-ramp-f-e-start": {
-    driver: AnimationDriver.Distance,
-    repeat: false,
-    isAnim: true,
-  },
-  "cruise-ramp-f-w-start": {
-    driver: AnimationDriver.Distance,
-    repeat: false,
-    isAnim: true,
-  },
-  "cruise-ramp-b-e-start": {
-    driver: AnimationDriver.Distance,
-    repeat: false,
-    isAnim: true,
-  },
-  "cruise-ramp-b-w-start": {
-    driver: AnimationDriver.Distance,
+  "jump-up-f-w": {
+    driver: AnimationDriver.TimePosDeltaSync,
     repeat: false,
     isAnim: true,
   },
 
-  "cruise-ramp-f-e-mid": {
-    driver: AnimationDriver.Distance,
+  "jump-up-b-w": {
+    driver: AnimationDriver.TimePosDeltaSync,
     repeat: false,
     isAnim: true,
   },
-  "cruise-ramp-f-w-mid": {
-    driver: AnimationDriver.Distance,
+
+  "jump-up-f-e": {
+    driver: AnimationDriver.TimePosDeltaSync,
     repeat: false,
     isAnim: true,
   },
-  "cruise-ramp-b-e-mid": {
-    driver: AnimationDriver.Distance,
+
+  "jump-up-b-e": {
+    driver: AnimationDriver.TimePosDeltaSync,
     repeat: false,
     isAnim: true,
   },
-  "cruise-ramp-b-w-mid": {
-    driver: AnimationDriver.Distance,
+
+  "jump-down-f-w": {
+    driver: AnimationDriver.TimePosDeltaSync,
+    repeat: false,
+    isAnim: true,
+  },
+
+  "jump-down-b-w": {
+    driver: AnimationDriver.TimePosDeltaSync,
+    repeat: false,
+    isAnim: true,
+  },
+
+  "jump-down-f-e": {
+    driver: AnimationDriver.TimePosDeltaSync,
+    repeat: false,
+    isAnim: true,
+  },
+
+  "jump-down-b-e": {
+    driver: AnimationDriver.TimePosDeltaSync,
     repeat: false,
     isAnim: true,
   },
 
   "ramp-land-w": {
-    driver: AnimationDriver.Distance,
+    driver: AnimationDriver.TimePosDeltaSync,
     repeat: false,
     isAnim: true,
   },
   "ramp-land-e": {
-    driver: AnimationDriver.Distance,
+    driver: AnimationDriver.TimePosDeltaSync,
     repeat: false,
     isAnim: true,
   },
 
   // Time + movement sync
   "climb-up": {
-    driver: AnimationDriver.TimeMovementSync,
+    driver: AnimationDriver.TimePosVelSync,
     repeat: true,
     isAnim: true,
   },
   "climb-down": {
-    driver: AnimationDriver.TimeMovementSync,
+    driver: AnimationDriver.TimePosVelSync,
     repeat: true,
     isAnim: true,
   },
@@ -184,6 +263,34 @@ const animationSettings: Record<
   "board-carry-r": { isAnim: false },
   "board-carry-l": { isAnim: false },
   "board-carry-c": { isAnim: false },
+};
+
+const Motions: Record<string, { dx: number; dy: number }[]> = {
+  cruise: [
+    { dx: 7, dy: 9 },
+    { dx: 9, dy: 14 },
+    { dx: 12, dy: 6 },
+    { dx: 18, dy: 4 },
+    { dx: 16, dy: 0 },
+    { dx: 18, dy: -4 },
+    { dx: 12, dy: -6 },
+    { dx: 9, dy: -14 },
+    { dx: 7, dy: -9 },
+    { dx: 0, dy: 0 },
+  ],
+
+  "jump-flat": [
+    { dx: 0, dy: 4 },
+    { dx: 0, dy: 0 },
+    { dx: 0, dy: 0 },
+    { dx: 0, dy: 0 },
+    { dx: 0, dy: -4 },
+  ],
+  "jump-up-e": [{ dx: 4, dy: -8 }],
+  "jump-down-e": [{ dx: 8, dy: 8 }],
+  "jump-up-w": [{ dx: -4, dy: -8 }],
+  "jump-down-w": [{ dx: -8, dy: 8 }],
+  "jump-rail-down": [{ dx: -4, dy: 8 }],
 };
 
 function createAnimationsFromAseprite(
@@ -209,23 +316,21 @@ function createAnimationsFromAseprite(
     if (settings.isAnim) {
       const frames: AnimationFrame[] = [];
 
-      const isCruiseRamp = tag.name.startsWith("cruise-ramp");
-      const isLandRamp = tag.name.startsWith("ramp-land");
-      const xDirMultiplier = tag.name.includes("-w") ? -1 : 1;
+      const direction = tag.name.includes("-w")
+        ? "w"
+        : tag.name.includes("-e")
+          ? "e"
+          : tag.name.includes("s")
+            ? "s"
+            : "n";
 
-      // Predefined motion deltas (without multiplier)
-      const cruiseMotion = [
-        { dx: 7, dy: 9 },
-        { dx: 9, dy: 14 },
-        { dx: 12, dy: 6 },
-        { dx: 18, dy: 4 },
-        { dx: 16, dy: 0 },
-        { dx: 18, dy: -4 },
-        { dx: 12, dy: -6 },
-        { dx: 9, dy: -14 },
-        { dx: 7, dy: -9 },
-        { dx: 0, dy: 0 },
-      ];
+      const stance = tag.name.includes("-b")
+        ? "b"
+        : tag.name.includes("-f")
+          ? "f"
+          : null;
+
+      const xDirMultiplier = tag.name.includes("-w") ? -1 : 1;
 
       for (let i = tag.from; i <= tag.to; i++) {
         // I need to have an equal sign in for loop condition to include tags with only one frame
@@ -234,9 +339,13 @@ function createAnimationsFromAseprite(
         const frameData = asepriteData.frames[i].frame;
         const duration = asepriteData.frames[i].duration;
 
-        if (settings.driver === AnimationDriver.Distance) {
+        if (settings.driver === AnimationDriver.TimePosDeltaSync) {
+          const isCruiseRamp = tag.name.startsWith("cruise-ramp");
+          const isLandRamp = tag.name.startsWith("ramp-land");
+          const isJump = tag.name.startsWith("jump");
+
           if (isCruiseRamp) {
-            const delta = cruiseMotion[i - tag.from];
+            const delta = Motions["cruise"][i - tag.from];
             frames.push({
               spritesheetX: frameData.x,
               spritesheetY: frameData.y,
@@ -252,6 +361,19 @@ function createAnimationsFromAseprite(
                 duration: 500,
                 dx,
                 dy,
+              });
+            }
+          } else if (isJump) {
+            const upDown = tag.name.includes("up") ? "up" : "down";
+            const motion = Motions[`jump-${upDown}-${direction}`];
+
+            for (const d of motion) {
+              frames.push({
+                spritesheetX: frameData.x,
+                spritesheetY: frameData.y,
+                duration,
+                dx: d.dx,
+                dy: d.dy,
               });
             }
           }
@@ -282,8 +404,6 @@ function createAnimationsFromAseprite(
           spritesheetY: frameData.y,
         });
       }
-
-      console.log("frames", frames);
 
       overlays[tag.name] = {
         spritesheet: "skater",

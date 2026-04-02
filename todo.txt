@@ -1,6 +1,19 @@
 # Todo
 
-* The transitions between skating a trick and going idle needs work, like flipping up the board and rolling up to the ramp an such.
+* The transition for flipping board when standing on ground needs to be done
+
+* Refactor Obstacle bc some obstacles won't need "idle positions" since they are calculated, they need to trickstart positions 
+
+* Let skater find the closest next start position 
+
+* Handle collisions with other skaters when finding positions
+
+* Review tricks sequence so that all possible combinations look good 
+
+* Handle changing directions and cruise/walk properly 
+
+* Add Flip board animation that should be played when going to idle
+
 
 Skate system overview 
 

@@ -13,59 +13,65 @@ type TransitionCondition<T extends TransitionType> =
       ? { duration: number }
       : null;
 
-type SequenceAnimation<T extends TransitionType> = {
+export type SequenceAnimationT<T extends TransitionType> = {
   type: T;
   anim: string;
-  overlay?: { name: string; dx?: number; dy?: number; drawBehind?: boolean };
+  overlay?: {
+    name: string;
+    dx?: number;
+    dy?: number;
+    drawBehind?: boolean;
+    drawOnTop?: boolean;
+  };
   transition: TransitionCondition<T>;
 };
 
-type PlayingAnimation<T extends TransitionType> =
+export type SequenceAnimation =
+  | SequenceAnimationT<TransitionType.Distance>
+  | SequenceAnimationT<TransitionType.Time>
+  | SequenceAnimationT<TransitionType.Finished>;
+
+type PlayingAnimationT<T extends TransitionType> =
   T extends TransitionType.Distance
-    ? { type: T; anim: SequenceAnimation<T> } & { x: number; y: number }
+    ? { type: T; anim: SequenceAnimationT<T> } & { x: number; y: number }
     : T extends TransitionType.Time
-      ? { type: T; anim: SequenceAnimation<T> } & { duration: number }
-      : { type: T; anim: SequenceAnimation<T> };
+      ? { type: T; anim: SequenceAnimationT<T> } & { duration: number }
+      : { type: T; anim: SequenceAnimationT<T> };
+
+type PlayingAnimation =
+  | PlayingAnimationT<TransitionType.Distance>
+  | PlayingAnimationT<TransitionType.Time>
+  | PlayingAnimationT<TransitionType.Finished>;
 
 export default class AnimationSequence {
-  private sequence: (
-    | SequenceAnimation<TransitionType.Distance>
-    | SequenceAnimation<TransitionType.Time>
-    | SequenceAnimation<TransitionType.Finished>
-  )[];
+  private sequence: SequenceAnimation[];
 
   private currIdx;
   private sprite: Sprite;
-  private playingAnim:
-    | PlayingAnimation<TransitionType.Distance>
-    | PlayingAnimation<TransitionType.Time>
-    | PlayingAnimation<TransitionType.Finished>
-    | null;
+  private playingAnim: PlayingAnimation | null;
 
   isFinished: boolean;
 
-  constructor(
-    sprite: Sprite,
-    sequence: (
-      | SequenceAnimation<TransitionType.Distance>
-      | SequenceAnimation<TransitionType.Time>
-      | SequenceAnimation<TransitionType.Finished>
-    )[],
-  ) {
+  constructor(sprite: Sprite, sequence: SequenceAnimation[]) {
     this.sprite = sprite;
     this.sequence = sequence;
     this.currIdx = 0;
     this.playingAnim = null;
     this.isFinished = false;
-    this.initPlayingAnimation();
   }
 
   static createAnim<T extends TransitionType>(config: {
     anim: string;
-    overlay?: { name: string; dx?: number; dy?: number; drawBehind?: boolean,drawOnTop?: boolean };
+    overlay?: {
+      name: string;
+      dx?: number;
+      dy?: number;
+      drawBehind?: boolean;
+      drawOnTop?: boolean;
+    };
     type: T;
     transition: TransitionCondition<T>;
-  }): SequenceAnimation<T> {
+  }): SequenceAnimationT<T> {
     return {
       type: config.type,
       anim: config.anim,
@@ -74,16 +80,23 @@ export default class AnimationSequence {
     };
   }
 
-  getCurrentAnimation() {
+  hasStarted(): boolean {
+    return this.playingAnim !== null;
+  }
+
+  start(): void {
+    this.initPlayingAnimation();
+  }
+
+  getCurrentAnimation(): {name: string, index: number} {
     return { name: this.sequence[this.currIdx]?.anim, index: this.currIdx };
   }
 
   update(dt: number): void {
     if (this.isFinished) return;
 
-    if (this.playingAnim === null) {
-      this.initPlayingAnimation();
-    }
+    if (this.playingAnim === null)
+      throw new Error("Animation sequence has not been initialized.");
 
     const playingAnim = this.playingAnim!;
 
@@ -137,7 +150,7 @@ export default class AnimationSequence {
     }
   }
 
-  private initPlayingAnimation() {
+  private initPlayingAnimation(): void {
     const anim = this.sequence[this.currIdx];
 
     switch (anim.type) {

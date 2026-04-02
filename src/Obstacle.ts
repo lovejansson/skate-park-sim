@@ -71,6 +71,8 @@ export default class Obstacle extends StaticObject {
 
   private currSkater: number | null;
 
+  private tileSize: number;
+
   constructor(
     scene: Scene,
     type: ObstacleType,
@@ -86,6 +88,7 @@ export default class Obstacle extends StaticObject {
     this.idlePositions = idleSpots.map((i) => ({ ...i, isFree: true }));
     this.currSkater = null;
     this.skaters = [];
+    this.tileSize = scene.art!.tileSize;
   }
 
   isOccupiedByMe(id: number): boolean {
@@ -109,7 +112,6 @@ export default class Obstacle extends StaticObject {
    * Call this when skater should occupy the obsticle, it will remove the skater from the queue and set the obsticle to not free.
    */
   skate(id: number) {
-  
     const skater = this.skaters.find((s) => s.id === id);
     if (skater === undefined) throw new Error("Skater is not at obstacle.");
 
@@ -123,6 +125,7 @@ export default class Obstacle extends StaticObject {
 
     // Switch idle positions for variation in landing and starting a trick
     this.idlePositions[skater.idlePosIdx].isFree = true;
+
     const idlePosIdx = this.getIdlePos();
 
     skater.idlePosIdx = idlePosIdx;
@@ -198,6 +201,33 @@ export default class Obstacle extends StaticObject {
     return this.skaters.length === this.idlePositions.length;
   }
 
+  getIdlePosSide(id: number): ObsticleSide {
+    const skater = this.skaters.find((s) => s.id === id);
+
+    if (skater === undefined) throw new Error("Skater is not at obstacle.");
+    const idlePos = this.idlePositions[skater.idlePosIdx];
+    if (this.type === "rail") {
+      if (idlePos.pos.x < this.pos.x) return ObsticleSide.BOTTOM_LEFT;
+
+      return ObsticleSide.BOTTOM_RIGHT;
+    } else {
+      const centerX = this.pos.x + this.halfWidth;
+      const centerY = this.pos.y + this.halfHeight;
+
+      if (idlePos.pos.x < centerX && idlePos.pos.y < centerY) {
+        return ObsticleSide.TOP_LEFT;
+      } else if (idlePos.pos.x > centerX && idlePos.pos.y < centerY) {
+        return ObsticleSide.TOP_RIGHT;
+      } else if (idlePos.pos.x > centerX && idlePos.pos.y > centerY) {
+        return ObsticleSide.BOTTOM_RIGHT;
+      } else if (idlePos.pos.x < centerX && idlePos.pos.y > centerY) {
+        return ObsticleSide.BOTTOM_LEFT;
+      }
+    }
+
+    throw Error("getIdlePosSide is not written correctly");
+  }
+
   private getIdlePos(): number {
     const idlePosIdx = (() => {
       const indices: number[] = [];
@@ -219,33 +249,9 @@ export default class Obstacle extends StaticObject {
   }
 }
 
-export enum RampSide {
+export enum ObsticleSide {
   TOP_LEFT = "top-left",
   TOP_RIGHT = "top-right",
   BOTTOM_RIGHT = "bottom-right",
   BOTTOM_LEFT = "bottom-left",
-}
-
-export function getRampSide(
-  obstacle: Obstacle,
-  tileSize: number,
-  idlePos: Vec2,
-): RampSide {
-  if (obstacle.type !== "ramp") throw new Error("Obstacle is not a ramp");
-  const left = obstacle.pos.x;
-  const right = obstacle.pos.x + obstacle.width - tileSize;
-  const top = obstacle.pos.y + tileSize;
-  const bottom = obstacle.pos.y + obstacle.height - tileSize * 3;
-
-  if (idlePos.x === left && idlePos.y === top) {
-    return RampSide.TOP_LEFT;
-  } else if (idlePos.x === right && idlePos.y === top) {
-    return RampSide.TOP_RIGHT;
-  } else if (idlePos.x === right && idlePos.y === bottom) {
-    return RampSide.BOTTOM_RIGHT;
-  } else if (idlePos.x === left && idlePos.y === bottom) {
-    return RampSide.BOTTOM_LEFT;
-  }
-
-  throw Error("getRampSide is not written correctly");
 }

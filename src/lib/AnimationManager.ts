@@ -8,7 +8,7 @@ export type AnimationConfigT<T extends AnimationDriver> = {
 };
 
 export type AnimationFrameT<T extends AnimationDriver> =
-  T extends AnimationDriver.Distance
+  T extends AnimationDriver.TimePosDeltaSync
     ? {
         dx: number;
         dy: number;
@@ -16,7 +16,7 @@ export type AnimationFrameT<T extends AnimationDriver> =
         spritesheetX: number;
         spritesheetY: number;
       }
-    : T extends AnimationDriver.TimeMovementSync
+    : T extends AnimationDriver.TimePosVelSync
       ? {
           spritesheetX: number;
           spritesheetY: number;
@@ -28,24 +28,24 @@ export type AnimationFrameT<T extends AnimationDriver> =
           spritesheetY: number;
         };
 export type AnimationFrame =
-  | AnimationFrameT<AnimationDriver.Distance>
+  | AnimationFrameT<AnimationDriver.TimePosDeltaSync>
   | AnimationFrameT<AnimationDriver.Time>
-  | AnimationFrameT<AnimationDriver.TimeMovementSync>;
+  | AnimationFrameT<AnimationDriver.TimePosVelSync>;
 
 export enum AnimationDriver {
-  Distance, // Animation updates to next frame after duration ms. Sprite's position is also updated according to dx and dy.
-  TimeMovementSync, // Animation updates to next frame after duration ms. Sprite's position is also updated according to sprite's velocity.
+  TimePosDeltaSync, // Animation updates to next frame after duration ms. Sprite's position is also updated according to dx and dy.
+  TimePosVelSync, // Animation updates to next frame after duration ms. Sprite's position is also updated according to sprite's velocity.
   Time, // Animation updates after frame rate ms. Movement is not updated at all.
 }
 
 type AnimationStateT<T extends AnimationDriver> =
-  T extends AnimationDriver.Distance
+  T extends AnimationDriver.TimePosDeltaSync
     ? {
         startX: number;
         startY: number;
         elapsed: number;
       }
-    : T extends AnimationDriver.TimeMovementSync
+    : T extends AnimationDriver.TimePosVelSync
       ? {
           elapsed: number;
         }
@@ -68,14 +68,14 @@ type PlayingAnimationT<T extends AnimationDriver> = {
 };
 
 type PlayingAnimation =
-  | PlayingAnimationT<AnimationDriver.Distance>
+  | PlayingAnimationT<AnimationDriver.TimePosDeltaSync>
   | PlayingAnimationT<AnimationDriver.Time>
-  | PlayingAnimationT<AnimationDriver.TimeMovementSync>;
+  | PlayingAnimationT<AnimationDriver.TimePosVelSync>;
 
 export type AnimationConfig =
-  | AnimationConfigT<AnimationDriver.Distance>
+  | AnimationConfigT<AnimationDriver.TimePosDeltaSync>
   | AnimationConfigT<AnimationDriver.Time>
-  | AnimationConfigT<AnimationDriver.TimeMovementSync>;
+  | AnimationConfigT<AnimationDriver.TimePosVelSync>;
 
 export default class AnimationManager {
   sprite: Sprite;
@@ -100,8 +100,9 @@ export default class AnimationManager {
 
   play(
     name: string,
-    overlay?: { name: string; dx?: number; dy?: number; drawBehind?: boolean },
+    overlay?: { name: string; dx?: number; dy?: number; drawBehind?: boolean, drawOnTop?: boolean },
   ) {
+  
     const anim = this.animations.get(name);
 
     const animationOverlay =
@@ -110,7 +111,7 @@ export default class AnimationManager {
     if (!anim) throw new AnimationNotAddedError(name);
 
     switch (anim.driver) {
-      case AnimationDriver.Distance:
+      case AnimationDriver.TimePosDeltaSync:
         this.playingAnimation = {
           driver: anim.driver,
           key: name,
@@ -124,7 +125,7 @@ export default class AnimationManager {
           state: { startX: 0, startY: 0, elapsed: 0 },
         };
         break;
-      case AnimationDriver.TimeMovementSync:
+      case AnimationDriver.TimePosVelSync:
         this.playingAnimation = {
           driver: anim.driver,
           key: name,
@@ -169,6 +170,10 @@ export default class AnimationManager {
     return this.playingAnimation?.key === name;
   }
 
+  getPlaying(): string | null {
+    return this.playingAnimation?.key ?? null;
+  }
+
   update(dt: number): void {
     if (this.sprite.scene.art === null)
       throw new Error("art is not set on sprite's scene object");
@@ -176,13 +181,14 @@ export default class AnimationManager {
     if (this.playingAnimation === null) return;
 
     switch (this.playingAnimation.driver) {
-      case AnimationDriver.Distance: {
+      case AnimationDriver.TimePosDeltaSync: {
         const frame =
           this.playingAnimation.config.frames[this.playingAnimation.frameCount];
 
         this.playingAnimation.state.elapsed += dt;
 
         if (this.playingAnimation.state.elapsed >= frame.duration) {
+        
           this.playingAnimation.frameCount++;
           this.sprite.pos.x += frame.dx;
           this.sprite.pos.y += frame.dy;
@@ -192,13 +198,14 @@ export default class AnimationManager {
 
         break;
       }
-      case AnimationDriver.TimeMovementSync: {
+      case AnimationDriver.TimePosVelSync: {
         const frame =
           this.playingAnimation.config.frames[this.playingAnimation.frameCount];
 
         this.playingAnimation.state.elapsed += dt;
 
         if (this.playingAnimation.state.elapsed >= frame.duration) {
+          
           this.playingAnimation.frameCount++;
 
           this.sprite.pos.x += this.sprite.vel.x;
@@ -278,7 +285,7 @@ export default class AnimationManager {
         this.sprite.width,
         this.sprite.height,
         this.sprite.pos.x + (this.playingAnimation.overlay.dx ?? 0),
-        this.sprite.pos.y + (this.playingAnimation.overlay.dy ?? 0),
+        this.sprite.pos.y + (this.playingAnimation.overlay.dy ?? 0) - this.sprite.scene.art!.tileSize,
         this.sprite.width,
         this.sprite.height,
       );
@@ -295,7 +302,7 @@ export default class AnimationManager {
       this.sprite.width,
       this.sprite.height,
       this.sprite.pos.x,
-      this.sprite.pos.y,
+      this.sprite.pos.y - this.sprite.scene.art!.tileSize,
       this.sprite.width,
       this.sprite.height,
     );
@@ -315,7 +322,7 @@ export default class AnimationManager {
         this.sprite.width,
         this.sprite.height,
         this.sprite.pos.x + (this.playingAnimation.overlay.dx ?? 0),
-        this.sprite.pos.y + (this.playingAnimation.overlay.dy ?? 0),
+        this.sprite.pos.y + (this.playingAnimation.overlay.dy ?? 0) - this.sprite.scene.art!.tileSize,
         this.sprite.width,
         this.sprite.height,
       );
