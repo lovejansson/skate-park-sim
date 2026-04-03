@@ -52,6 +52,6 @@ export interface AsepriteMeta {
 }
 
 export interface AsepriteJSON {
-  frames: AsepriteFrame[];
+  frames: {[key: string]: AsepriteFrame};
   meta: AsepriteMeta;
 }

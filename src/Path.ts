@@ -1,4 +1,4 @@
-import { createPathAStar, createPathBFS } from "./grid.ts";
+import { createPathAStar } from "./grid.ts";
 import type { Sprite } from "./lib/index.ts";
 import type { Cell, Direction, Vec2 } from "./lib/types.ts";
 import { getPosDiff, posToCell } from "./utils.ts";

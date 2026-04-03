@@ -6,15 +6,15 @@ export function isSamePos(pos1: Vec2, pos2: Vec2) {
 
 export function posToCell(pos: Vec2, tileSize: number) {
   return {
-    row: Math.round(pos.y / tileSize),
-    col: Math.round(pos.x / tileSize),
+    row: pos.y / tileSize,
+    col: pos.x / tileSize,
   };
 }
 
 export function cellToPos(cell: Cell, tileSize: number) {
   return {
-    y: Math.round(cell.row * tileSize),
-    x: Math.round(cell.col * tileSize),
+    y: cell.row * tileSize,
+    x: cell.col * tileSize,
   };
 }
 
@@ -49,4 +49,8 @@ export function getPosDiff(pos1: Vec2, pos2: Vec2): Vec2 {
 
 export function randomBool() {
   return Math.random() > 0.5;
+}
+
+export function manhattan(a: Cell, b: Cell): number {
+  return Math.abs(b.row - a.row) + Math.abs(b.col - a.col);
 }

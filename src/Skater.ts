@@ -6,7 +6,7 @@ import {
   type AnimationFrame,
   type AnimationOverlay,
 } from "./lib/AnimationManager";
-import type { Vec2 } from "./lib/types";
+import type { Direction, Vec2 } from "./lib/types";
 import type Play from "./Play";
 import type { Updatable } from "./SkatingAtPark";
 import SkatingAtPark from "./SkatingAtPark";
@@ -66,6 +66,85 @@ export default class Skater extends Sprite {
  *
  */
 
+export function getBoardFlipOverlay(direction: Direction) {
+  switch (direction) {
+    case "n":
+      return {
+        name: "flip-board-n",
+        drawOnTop: false,
+        drawBehind: true,
+        dy: 0,
+        dx: 0,
+      };
+    case "e":
+      return {
+        name: "flip-board-e",
+        drawOnTop: false,
+        drawBehind: true,
+        dy: 3,
+        dx: 8,
+      };
+    case "s":
+      return {
+        name: "flip-board-s",
+        drawOnTop: true,
+        drawBehind: false,
+        dy: 13,
+        dx: 0,
+      };
+    case "w":
+      return {
+        name: "flip-board-w",
+        drawOnTop: false,
+        drawBehind: true,
+        dy: 3,
+        dx: -8,
+      };
+  }
+}
+
+export function getBoardCarryOverlay(direction: Direction, isIdle: boolean = false) {
+  switch (direction) {
+    case "n":
+      return {
+        name: `board-carry-${isIdle ? "idle-" : ""}r`,
+        drawOnTop: false,
+        drawBehind: true,
+        dy: 5,
+        dx: 1,
+      };
+    case "ne":
+      break;
+    case "e":
+      return {
+        name: `board-carry-${isIdle ? "idle-" : ""}c`,
+        drawOnTop: true,
+        drawBehind: false,
+        dy: -1,
+        dx: 0,
+      };
+    case "se":
+    case "s":
+      return {
+        name: `board-carry-${isIdle ? "idle-" : ""}l`,
+        drawOnTop: false,
+        drawBehind: true,
+        dy: 5,
+        dx: -1,
+      };
+    case "sw":
+    case "w":
+      return {
+        name: `board-carry-${isIdle ? "idle-" : ""}c`,
+        drawOnTop: false,
+        drawBehind: true,
+        dy: -2,
+        dx: 0,
+      };
+    case "nw":
+  }
+}
+
 const AnimationSettings: Record<
   string,
   | { driver: AnimationDriver; repeat: number | boolean; isAnim: true }
@@ -82,6 +161,17 @@ const AnimationSettings: Record<
     repeat: true,
     isAnim: true,
   },
+
+  "walk-e": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "walk-w": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
   "walk-board-n": {
     driver: AnimationDriver.TimePosVelSync,
     repeat: true,
@@ -92,10 +182,25 @@ const AnimationSettings: Record<
     repeat: true,
     isAnim: true,
   },
+  "walk-board-e": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
+  "walk-board-w": {
+    driver: AnimationDriver.TimePosVelSync,
+    repeat: true,
+    isAnim: true,
+  },
   "idle-stand-n": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
   "idle-stand-s": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
   "idle-stand-w": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
   "idle-stand-e": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
+
+  "flip-n": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
+  "flip-s": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
+  "flip-w": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
+  "flip-e": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
 
   // Time-driven animations, no repeat
   "180-f": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
@@ -258,11 +363,20 @@ const AnimationSettings: Record<
     isAnim: true,
   },
 
-  // Overlays
+  // Overlays, overlays follow their parent animation's settings
 
   "board-carry-r": { isAnim: false },
   "board-carry-l": { isAnim: false },
   "board-carry-c": { isAnim: false },
+
+  "board-carry-idle-r": { isAnim: false },
+  "board-carry-idle-l": { isAnim: false },
+  "board-carry-idle-c": { isAnim: false },
+
+  "flip-board-n": { isAnim: false },
+  "flip-board-e": { isAnim: false },
+  "flip-board-s": { isAnim: false },
+  "flip-board-w": { isAnim: false },
 };
 
 const Motions: Record<string, { dx: number; dy: number }[]> = {
@@ -333,11 +447,12 @@ function createAnimationsFromAseprite(
       const xDirMultiplier = tag.name.includes("-w") ? -1 : 1;
 
       for (let i = tag.from; i <= tag.to; i++) {
-        // I need to have an equal sign in for loop condition to include tags with only one frame
-        if (i === asepriteData.frames.length) continue;
+        const frame = asepriteData.frames[`${tag.name}-${i - tag.from}`];
 
-        const frameData = asepriteData.frames[i].frame;
-        const duration = asepriteData.frames[i].duration;
+        if (!frame) throw new Error("Missing frame data for tag frame");
+
+        const frameData = frame.frame;
+        const duration = frame.duration;
 
         if (settings.driver === AnimationDriver.TimePosDeltaSync) {
           const isCruiseRamp = tag.name.startsWith("cruise-ramp");
@@ -396,9 +511,9 @@ function createAnimationsFromAseprite(
       const frames: { spritesheetX: number; spritesheetY: number }[] = [];
 
       for (let i = tag.from; i <= tag.to; i++) {
-        // I need to have an equal sign in for loop condition to include tags with only one frame
-        if (i === asepriteData.frames.length) continue;
-        const frameData = asepriteData.frames[i].frame;
+        const frame = asepriteData.frames[`${tag.name}-${i - tag.from}`];
+        if (!frame) throw new Error("Missing frame data for tag frame");
+        const frameData = frame.frame;
         frames.push({
           spritesheetX: frameData.x,
           spritesheetY: frameData.y,

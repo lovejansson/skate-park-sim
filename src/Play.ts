@@ -1,7 +1,7 @@
 import { Scene } from "./lib/index.ts";
 import { type Tilemap } from "./types.ts";
 import { createGrid } from "./grid.ts";
-import Obstacle, { type ObstacleType } from "./Obstacle.ts";
+import Obstacle, { Rail, Ramp, type ObstacleType } from "./Obstacle.ts";
 import type { Vec2 } from "./lib/types.ts";
 import Skater from "./Skater.ts";
 
@@ -22,12 +22,12 @@ export default class Play extends Scene {
   }
 
   async init() {
-    this.skaters.push(new Skater(this, { x: 6 * 16, y: 9 * 16 }, "sickan", 5));
-    // this.skaters.push(new Skater(this, { x: 6 * 16, y: 9 * 16 }, "doris", 5));
-    // this.skaters.push(new Skater(this, { x: 6 * 16, y: 9 * 16 }, "harry", 5));
-    // this.skaters.push(
-    //   new Skater(this, { x: 6 * 16, y: 9 * 16 }, "vanheden", 5),
-    // );
+    this.skaters.push(new Skater(this, { x: 14 * 16, y: 5 * 16 }, "sickan", 5));
+    this.skaters.push(new Skater(this, { x: 4 * 16, y: 7 * 16 }, "doris", 5));
+
+    this.skaters.push(
+      new Skater(this, { x: 5 * 16, y: 7 * 16 }, "vanheden", 5),
+    );
 
     this.art!.images.add("tilemap", this.tilemap.tilemap);
     this.art!.images.add("skater", "/skater-spritesheet.png");
@@ -51,20 +51,44 @@ export default class Play extends Scene {
             t1.attributes.hasOwnProperty("isIdlePos"),
         );
 
-        obstacles.set(
-          t.attributes["id"],
-          new Obstacle(
-            this,
-            t.attributes["obstacle"] as ObstacleType,
-            t.pos as Vec2,
-            parseInt(t.attributes["width"]),
-            parseInt(t.attributes["height"]),
-            idlePositions.map((i) => ({
-              pos: i.pos as Vec2,
-              meta: i.attributes["meta"],
-            })),
-          ),
-        );
+        if (t.attributes["obstacle"] === "ramp") {
+          obstacles.set(
+            t.attributes["id"],
+            new Ramp(
+              this,
+              t.pos as Vec2,
+              parseInt(t.attributes["width"]),
+              parseInt(t.attributes["height"]),
+              4,
+              idlePositions.map((i) => ({
+                pos: i.pos as Vec2,
+                meta: i.attributes["meta"],
+              })),
+            ),
+          );
+        } else if (t.attributes["obstacle"] === "rail") {
+          obstacles.set(
+            t.attributes["id"],
+            new Rail(
+              this,
+              t.pos as Vec2,
+              parseInt(t.attributes["width"]),
+              parseInt(t.attributes["height"]),
+            ),
+          );
+        } else {
+          obstacles.set(
+            t.attributes["id"],
+            new Obstacle(
+              this,
+              t.attributes["obstacle"] as ObstacleType,
+              t.pos as Vec2,
+              parseInt(t.attributes["width"]),
+              parseInt(t.attributes["height"]),
+              3,
+            ),
+          );
+        }
       }
 
       if (
@@ -83,10 +107,10 @@ export default class Play extends Scene {
     // Make obsticle tiles not cruisable
     for (const o of this.obstacles) {
       const startRow = o.pos.y / this.tileSize + (o.type === "rail" ? -1 : 0);
-      const startCol = o.pos.x / this.tileSize + (o.type === "rail" ? -1 : 0);
+      const startCol = o.pos.x / this.tileSize + (o.type === "rail" ? -2 : 0);
       const endRow = startRow + o.height / this.tileSize;
       const endCol =
-        startCol + o.width / this.tileSize + (o.type === "rail" ? 1 : 0);
+        startCol + o.width / this.tileSize + (o.type === "rail" ? 2 : 0);
 
       for (let r = startRow; r <= endRow; ++r) {
         for (let c = startCol; c <= endCol; ++c) {
@@ -94,8 +118,6 @@ export default class Play extends Scene {
         }
       }
 
-      if (o.type === "rail") {
-      }
     }
 
     console.log(this.obstacles);

@@ -64,7 +64,13 @@ type PlayingAnimationT<T extends AnimationDriver> = {
   state: AnimationStateT<T>;
   frameCount: number;
   loopCount: number;
-  overlay?: AnimationOverlay & { dx?: number; dy?: number, drawBehind?: boolean, drawOnTop?: boolean, name: string };
+  overlay?: AnimationOverlay & {
+    dx?: number;
+    dy?: number;
+    drawBehind?: boolean;
+    drawOnTop?: boolean;
+    name: string;
+  };
 };
 
 type PlayingAnimation =
@@ -100,9 +106,14 @@ export default class AnimationManager {
 
   play(
     name: string,
-    overlay?: { name: string; dx?: number; dy?: number; drawBehind?: boolean, drawOnTop?: boolean },
+    overlay?: {
+      name: string;
+      dx?: number;
+      dy?: number;
+      drawBehind?: boolean;
+      drawOnTop?: boolean;
+    },
   ) {
-  
     const anim = this.animations.get(name);
 
     const animationOverlay =
@@ -188,7 +199,6 @@ export default class AnimationManager {
         this.playingAnimation.state.elapsed += dt;
 
         if (this.playingAnimation.state.elapsed >= frame.duration) {
-        
           this.playingAnimation.frameCount++;
           this.sprite.pos.x += frame.dx;
           this.sprite.pos.y += frame.dy;
@@ -205,7 +215,6 @@ export default class AnimationManager {
         this.playingAnimation.state.elapsed += dt;
 
         if (this.playingAnimation.state.elapsed >= frame.duration) {
-          
           this.playingAnimation.frameCount++;
 
           this.sprite.pos.x += this.sprite.vel.x;
@@ -270,14 +279,21 @@ export default class AnimationManager {
         this.playingAnimation.config.spritesheet,
       );
 
-    if (this.playingAnimation.overlay && this.playingAnimation.overlay.drawBehind) {
+
+    if (
+      this.playingAnimation.overlay &&
+      this.playingAnimation.overlay.drawBehind
+    ) {
       const overlaySpritesheet = this.sprite.scene.art.images.get(
         this.playingAnimation.overlay.spritesheet,
       );
       if (!overlaySpritesheet) return;
 
-      const frame = this.playingAnimation.overlay.frames[0];
-
+      const frame =
+        this.playingAnimation.overlay.frames[
+          this.playingAnimation.frameCount
+        ] || this.playingAnimation.overlay.frames[0];
+     
       ctx.drawImage(
         image,
         frame.spritesheetX,
@@ -285,7 +301,9 @@ export default class AnimationManager {
         this.sprite.width,
         this.sprite.height,
         this.sprite.pos.x + (this.playingAnimation.overlay.dx ?? 0),
-        this.sprite.pos.y + (this.playingAnimation.overlay.dy ?? 0) - this.sprite.scene.art!.tileSize,
+        this.sprite.pos.y +
+          (this.playingAnimation.overlay.dy ?? 0) -
+          this.sprite.scene.art!.tileSize,
         this.sprite.width,
         this.sprite.height,
       );
@@ -294,7 +312,6 @@ export default class AnimationManager {
     const frame =
       this.playingAnimation.config.frames[this.playingAnimation.frameCount];
 
-    // console.log(frame, this.playingAnimation.frameCount,this.playingAnimation.config.frames);
     ctx.drawImage(
       image,
       frame.spritesheetX,
@@ -307,14 +324,23 @@ export default class AnimationManager {
       this.sprite.height,
     );
 
-    if (this.playingAnimation.overlay && this.playingAnimation.overlay.drawOnTop) {
+    if (
+      this.playingAnimation.overlay &&
+      this.playingAnimation.overlay.drawOnTop
+    ) {
       const overlaySpritesheet = this.sprite.scene.art.images.get(
         this.playingAnimation.overlay.spritesheet,
       );
       if (!overlaySpritesheet) return;
 
-      const frame = this.playingAnimation.overlay.frames[0];
+      const frame =
+        this.playingAnimation.overlay.frames[
+          this.playingAnimation.frameCount
+        ] || this.playingAnimation.overlay.frames[0];
 
+     
+
+    
       ctx.drawImage(
         image,
         frame.spritesheetX,
@@ -322,7 +348,9 @@ export default class AnimationManager {
         this.sprite.width,
         this.sprite.height,
         this.sprite.pos.x + (this.playingAnimation.overlay.dx ?? 0),
-        this.sprite.pos.y + (this.playingAnimation.overlay.dy ?? 0) - this.sprite.scene.art!.tileSize,
+        this.sprite.pos.y +
+          (this.playingAnimation.overlay.dy ?? 0) -
+          this.sprite.scene.art!.tileSize,
         this.sprite.width,
         this.sprite.height,
       );
