@@ -168,11 +168,16 @@ export default class Obstacle extends StaticObject {
   }
 }
 
+
+
+
 export class Rail extends Obstacle {
   private startPositions: { pos: Vec2; railSide: RailSide }[];
+  isDouble: boolean;
 
-  constructor(scene: Scene, pos: Vec2, width: number, height: number) {
+  constructor(scene: Scene, pos: Vec2, width: number, height: number, isDouble: boolean = false) {
     super(scene, "rail", pos, width, height, 4);
+    this.isDouble = isDouble;
     this.startPositions = [
       {
         pos: { x: this.pos.x - 4 * scene.art!.tileSize, y: this.pos.y },

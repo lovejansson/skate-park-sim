@@ -23,10 +23,10 @@ export default class Play extends Scene {
 
   async init() {
     this.skaters.push(new Skater(this, { x: 14 * 16, y: 5 * 16 }, "sickan", 5));
-    this.skaters.push(new Skater(this, { x: 4 * 16, y: 7 * 16 }, "doris", 5));
+    this.skaters.push(new Skater(this, { x: 14 * 16, y: 5 * 16 }, "doris", 5));
 
     this.skaters.push(
-      new Skater(this, { x: 7 * 16, y: 7 * 16 }, "vanheden", 5),
+      new Skater(this, { x: 15 * 16, y: 5 * 16 }, "vanheden", 5),
     );
 
     this.art!.images.add("tilemap", this.tilemap.tilemap);
@@ -103,6 +103,7 @@ export default class Play extends Scene {
     }
 
     this.obstacles = new Array(...obstacles.values());
+    
 
     // Make obsticle tiles not cruisable
     for (const o of this.obstacles) {

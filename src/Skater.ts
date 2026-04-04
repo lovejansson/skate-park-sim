@@ -70,17 +70,26 @@ export default class Skater extends Sprite {
         speed = Skater.CRUISE_SPEED;
       } else if (animName.includes("grind")) {
         speed = Skater.GRIND_SPEED;
-      } else if (animName.includes("idle") || animName.startsWith("flip")) {
+      } else if (
+        animName.includes("idle") ||
+        animName.startsWith("flip") ||
+        animName.includes("prep")
+      ) {
         speed = 0;
-        this.vel.x = 0;
-        this.vel.y = 0;
       } else if (animName.includes("walk")) {
-        // velocity is updated in Path right now hm
+        // velocity is updated in Path right now hmmmmm
+        // if(this.direction === "e" || this.direction === "w") {
+        //   this.vel.x *= 2;
+        // }
       } else if (
         animName.includes("kickflip") ||
-        animName.includes("shove-it")
+        animName.includes("shove-it") || animName.includes("ollie")
       ) {
-        speed = Skater.TRICK_SPEED;
+        if (this.action.tag === "rail-obstacle-tricks") {
+          speed = Skater.TRICK_SPEED;
+        } else {
+          speed = 0;
+        }
       }
 
       switch (this.direction) {
@@ -268,6 +277,29 @@ const AnimationSettings: Record<
     isAnim: true,
   },
 
+  "idle-stand-board-n": {
+    driver: PositionUpdateType.Vel,
+    repeat: true,
+    isAnim: true,
+  },
+  "idle-stand-board-s": {
+    driver: PositionUpdateType.Vel,
+    repeat: true,
+    isAnim: true,
+  },
+
+  "prep-n": {
+    driver: PositionUpdateType.Vel,
+    repeat: false,
+    isAnim: true,
+  },
+
+  "prep-s": {
+    driver: PositionUpdateType.Vel,
+    repeat: false,
+    isAnim: true,
+  },
+
   "flip-n": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
   "flip-s": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
   "flip-w": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
@@ -295,6 +327,16 @@ const AnimationSettings: Record<
     isAnim: true,
   },
   "shove-it-b": {
+    driver: PositionUpdateType.Vel,
+    repeat: false,
+    isAnim: true,
+  },
+  "ollie-f": {
+    driver: PositionUpdateType.Vel,
+    repeat: false,
+    isAnim: true,
+  },
+  "ollie-b": {
     driver: PositionUpdateType.Vel,
     repeat: false,
     isAnim: true,

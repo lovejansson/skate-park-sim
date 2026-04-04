@@ -13,7 +13,11 @@
                 "y": 48
             },
             "attributes": {
-                "isCruisable": "true"
+                "isCruisable": "true",
+                "obstacle": "flat",
+                "id": "1",
+                "width": "16",
+                "height": "16"
             }
         },
         {

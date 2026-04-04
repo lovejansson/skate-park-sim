@@ -30,7 +30,7 @@ import AnimationSequence, {
   TransitionType,
   type SequenceAnimation,
 } from "./lib/AnimationSequence";
-import type { Vec2 } from "./lib";
+import type { Direction, Vec2 } from "./lib";
 import { findClosestFreeCell } from "./grid";
 import { getBoardCarryOverlay, getBoardFlipOverlay } from "./Skater";
 
@@ -59,7 +59,8 @@ export default class SkatingAtPark implements Updatable {
 
   update(dt: number): void {
     if (this.currAction === null || this.currAction.isComplete()) {
-      const obstacleType = "rail";
+      const obstacleType = this.skater.id > 0 ? "rail" : "flat";
+
 
       const obstacle = (this.skater.scene as Play).obstacles.find(
         (o) => o.type === obstacleType,
@@ -109,6 +110,16 @@ export default class SkatingAtPark implements Updatable {
             "rail",
             this.skater,
             this.currObstacle as Rail,
+            FIVE_MINUTES,
+          );
+        } else if (this.currObstacle.type === "flat") {
+          this.skater.pos.x = this.currObstacle.pos.x;
+          this.skater.pos.y = this.currObstacle.pos.y;
+
+          this.currAction = createAction(
+            FlatObstacle.tag,
+            this.skater,
+            this.currObstacle,
             FIVE_MINUTES,
           );
         } else {
@@ -208,7 +219,7 @@ class RailObstacle implements Updatable {
 
     (this.skater.scene as Play).parkGrid[cell.row][cell.col] = 1;
 
-    if (this.skater.pos.y < this.obstacle.pos.y) {
+    if (this.skater.pos.y <= this.obstacle.pos.y) {
       this.skater.direction = "s";
       this.skater.animations.play(
         "idle-stand-s",
@@ -221,6 +232,8 @@ class RailObstacle implements Updatable {
         getBoardCarryOverlay(this.skater.direction, true),
       );
     }
+
+    
   }
 }
 
@@ -228,15 +241,68 @@ class FlatObstacle implements Updatable {
   static tag: "flat" = "flat";
   readonly tag: "flat" = FlatObstacle.tag;
   private skater: Skater;
+  private animationSeq: AnimationSequence;
+  private timer: Timer;
 
-  constructor(skater: Skater, obstacle: Obstacle) {
+  constructor(skater: Skater, obstacle: Obstacle, ms: number) {
     this.skater = skater;
+    this.skater.pos.x = obstacle.pos.x;
+    this.skater.pos.y = obstacle.pos.y;
+
+    this.skater.direction = randomEl(["s", "n"]) as Direction;
+
+    this.animationSeq = new AnimationSequence(
+      this.skater,
+      FlatObstacle.CreateAnimationSequence(this.skater.direction),
+    );
+    this.timer = new Timer();
+    this.timer.start(ms);
+
+    this.animationSeq.start();
   }
 
-  update(_: number) {}
+  update(dt: number) {
+    this.animationSeq.update(dt);
+    if (this.animationSeq.isFinished) {
+      this.animationSeq = new AnimationSequence(
+        this.skater,
+        FlatObstacle.CreateAnimationSequence(this.skater.direction),
+      );
+
+      this.animationSeq.start();
+    }
+  }
 
   isComplete(): boolean {
-    return true;
+    return this.timer.isStopped;
+  }
+
+  static CreateAnimationSequence(direction: Direction): SequenceAnimation[] {
+    const trick = randomEl(obstacleTricks["flat"]);
+
+    
+
+    const stance = direction === "n" ? "b" : "f";
+
+    const seq: SequenceAnimation[] = [
+      AnimationSequence.createAnim({
+        anim: `idle-stand-board-${direction}`,
+        type: TransitionType.Time,
+        transition: { duration: 2000 },
+      }),
+      AnimationSequence.createAnim({
+        anim: `prep-${direction}`,
+        type: TransitionType.Finished,
+        transition: null,
+      }),
+      AnimationSequence.createAnim({
+        anim: `${trick?.includes("shove-it") ? "shove-it" : trick}-${stance}`,
+        type: TransitionType.Finished,
+        transition: null,
+      }),
+    ];
+
+    return seq;
   }
 }
 
@@ -623,6 +689,7 @@ class RailObstacleTricks implements Updatable {
     switch (this.step) {
       case "start": {
         if (this.path === null) {
+  
           const currCell = posToCell(this.skater.pos, this.tileSize);
 
           (this.skater.scene as Play).parkGrid[currCell.row][currCell.col] = 0;
@@ -688,6 +755,7 @@ class RailObstacleTricks implements Updatable {
       }
       case "return": {
         if (this.path === null) {
+        
           const currCell = posToCell(this.skater.pos, this.tileSize);
 
           // console.log("START RETURN: ", this.skater.pos.x, currCell);
@@ -697,14 +765,13 @@ class RailObstacleTricks implements Updatable {
 
           this.skater.pos = cellToPos(currCell, this.tileSize);
 
-          // temp block out the x direction of rail so that the skater doesn't stand in the way of other skaters who are doing tricks
+          // temp block out the x direction of rail so that the skater doesn't stand in the way of other skaters who are doing
 
           const numTilesBlock = 4;
 
           for (
             let c = this.obstacle.pos.x / this.tileSize - numTilesBlock;
-            c <
-            this.obstacle.pos.x / this.tileSize;
+            c < this.obstacle.pos.x / this.tileSize;
             c++
           ) {
             (this.skater.scene as Play).parkGrid[
@@ -713,7 +780,9 @@ class RailObstacleTricks implements Updatable {
           }
 
           for (
-            let c = this.obstacle.pos.x / this.tileSize + this.obstacle.width / this.tileSize;
+            let c =
+              this.obstacle.pos.x / this.tileSize +
+              this.obstacle.width / this.tileSize;
             c <
             this.obstacle.pos.x / this.tileSize +
               this.obstacle.width / this.tileSize +
@@ -733,10 +802,9 @@ class RailObstacleTricks implements Updatable {
 
           if (closestCell === null) throw Error("WHY");
 
-           for (
+          for (
             let c = this.obstacle.pos.x / this.tileSize - numTilesBlock;
-            c <
-            this.obstacle.pos.x / this.tileSize;
+            c < this.obstacle.pos.x / this.tileSize;
             c++
           ) {
             (this.skater.scene as Play).parkGrid[
@@ -745,7 +813,9 @@ class RailObstacleTricks implements Updatable {
           }
 
           for (
-            let c = this.obstacle.pos.x / this.tileSize + this.obstacle.width / this.tileSize;
+            let c =
+              this.obstacle.pos.x / this.tileSize +
+              this.obstacle.width / this.tileSize;
             c <
             this.obstacle.pos.x / this.tileSize +
               this.obstacle.width / this.tileSize +
@@ -1333,7 +1403,7 @@ type ActionParams = {
 
   bowl: [skater: Skater, obstacle: Obstacle];
   rail: [skater: Skater, obstacle: Rail, ms: number];
-  flat: [skater: Skater, obstacle: Obstacle];
+  flat: [skater: Skater, obstacle: Obstacle, ms: number];
   square: [skater: Skater, obstacle: Obstacle];
   ramp: [skater: Skater, obstacle: Ramp, ms: number];
 };
