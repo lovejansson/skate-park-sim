@@ -1,5 +1,5 @@
 import type Play from "./Play";
-import type Skater from "./Skater";
+import Skater from "./Skater";
 import {
   randomBool,
   randomEl,
@@ -531,7 +531,7 @@ class RailObstacleTricks implements Updatable {
   static TAG: "rail-obstacle-tricks" = "rail-obstacle-tricks";
   readonly tag: "rail-obstacle-tricks" = RailObstacleTricks.TAG;
 
-  static CRUISE_SPEED = 6;
+  static CRUISE_SPEED = 4;
   static GRIND_SPEED = 4;
   static TRICK_SPEED = 4;
   static WALK_SPEED = 1;
@@ -557,32 +557,71 @@ class RailObstacleTricks implements Updatable {
     this.obstacle = obstacle;
 
     this.step = "start";
-
     this.path = null;
 
     this.start = start;
 
     const trickOne = randomBool() ? randomEl(["shove-it", "kickflip"]) : null;
-    const trickTwo = trickOne === null && randomBool() ? randomEl(["shove-it", "kickflip"]) : null;
+    const trickTwo =
+      trickOne === null && randomBool()
+        ? randomEl(["shove-it", "kickflip"])
+        : null;
+
+    const tilesKickflip = Math.abs(
+      this.skater.animations.getEstimatedDistanceForAnim("kickflip-f", {
+        x: Skater.TRICK_SPEED,
+        y: 0,
+      }).x / this.tileSize,
+    );
+    const tilesShoveIt = Math.abs(
+      this.skater.animations.getEstimatedDistanceForAnim("shove-it-f", {
+        x: Skater.TRICK_SPEED,
+        y: 0,
+      }).x / this.tileSize,
+    );
+
+    const tilesTrickTwo =
+      trickTwo === "kickflip"
+        ? tilesKickflip
+        : trickTwo === "shove-it"
+          ? tilesShoveIt
+          : 0;
+
+    const tilesTrickOne =
+      trickOne === "kickflip"
+        ? tilesKickflip
+        : trickOne === "shove-it"
+          ? tilesShoveIt
+          : 0;
 
     const sequence = RailObstacleTricks.CreateAnimationSequence({
       startSide: this.start.railSide,
       tilesAfterRail: 2,
-      tilesGrind: 3,
+      tilesGrind:
+        this.obstacle.width / this.tileSize - tilesTrickOne - tilesTrickTwo,
       tileSize: this.tileSize,
       tilesToRail: 2,
       trickOne: trickOne,
       trickTwo: trickTwo,
+      tilesTrickOne,
+      tilesTrickTwo,
     });
 
-    this.animationSequence = new AnimationSequence(this.skater, sequence);
+    this.animationSequence = new AnimationSequence(
+      this.skater,
+      sequence,
+      (anim) => {
+        // console.log(anim);
+        // console.log("Skater X ", this.skater.pos.x);
+      },
+    );
   }
 
   update(dt: number): void {
+    const animName = this.skater.animations.getPlaying();
+
     switch (this.step) {
       case "start": {
-        // Go to start position
-
         if (this.path === null) {
           const currCell = posToCell(this.skater.pos, this.tileSize);
 
@@ -604,12 +643,9 @@ class RailObstacleTricks implements Updatable {
           return;
         }
 
-        // Update
-
         this.path.update(dt);
 
-        const animName = this.skater.animations.getPlaying();
-
+        // Change animation if skater changed direction
         if (
           animName === null ||
           !animName.includes(`-${this.skater.direction}`)
@@ -628,42 +664,24 @@ class RailObstacleTricks implements Updatable {
       }
       case "rail": {
         if (!this.animationSequence.hasStarted()) {
+          this.skater.direction =
+            this.start.railSide === RailSide.LEFT ? "e" : "w";
+          // console.log(
+          //   "START ANIM SEQ POS: ",
+          //   this.skater.pos.x,
+          //   posToCell(this.skater.pos, this.tileSize),
+          // );
           this.animationSequence.start();
         }
 
         this.animationSequence.update(dt);
 
-        const anim = this.animationSequence.getCurrentAnimation().name;
-
-        if (anim === "walk-board-n") {
-          this.skater.vel.y = -RailObstacleTricks.WALK_SPEED;
-          this.skater.vel.x = 0;
-        } else if (anim === "walk-board-s") {
-          this.skater.vel.y = RailObstacleTricks.WALK_SPEED;
-          this.skater.vel.x = 0;
-        } else if (["cruise-b-e", "cruise-f-e"].includes(anim)) {
-          this.skater.vel.x = RailObstacleTricks.CRUISE_SPEED;
-          this.skater.vel.y = 0;
-        } else if (["cruise-b-w", "cruise-f-w"].includes(anim)) {
-          this.skater.vel.x = -RailObstacleTricks.CRUISE_SPEED;
-          this.skater.vel.y = 0;
-        } else if (["nose-grind-b-e", "nose-grind-w-e"].includes(anim)) {
-          this.skater.vel.x = RailObstacleTricks.GRIND_SPEED;
-          this.skater.vel.y = 0;
-        } else if (["nose-grind-b-w", "nose-grind-f-w"].includes(anim)) {
-          this.skater.vel.x = -RailObstacleTricks.GRIND_SPEED;
-          this.skater.vel.y = 0;
-        } else if (anim === "kickflip-f") {
-          this.skater.vel.x = -RailObstacleTricks.TRICK_SPEED;
-        } else if (anim === "kickflip-b") {
-          this.skater.vel.x = RailObstacleTricks.TRICK_SPEED;
-        } else if (anim === "shove-it-b") {
-          this.skater.vel.x = RailObstacleTricks.TRICK_SPEED;
-        } else if (anim === "shove-it-f") {
-          this.skater.vel.x = -RailObstacleTricks.TRICK_SPEED;
-        }
-
         if (this.animationSequence.isFinished) {
+          // console.log(
+          //   "START ANIM SEQ FINISHED: ",
+          //   this.skater.pos.x,
+          //   posToCell(this.skater.pos, this.tileSize),
+          // );
           this.step = "return";
         }
         break;
@@ -672,34 +690,40 @@ class RailObstacleTricks implements Updatable {
         if (this.path === null) {
           const currCell = posToCell(this.skater.pos, this.tileSize);
 
-          const diff =
-            this.skater.direction === "w"
-              ? currCell.col -
-                Math.floor(currCell.col) 
-              : Math.ceil(currCell.col) -
-                currCell.col;
-
-          if (diff * this.tileSize > 1) {
-            if (
-              !this.skater.animations.isPlaying(
-                "walk-board-" + this.skater.direction,
-              )
-            )
-              this.skater.animations.play(
-                "walk-board-" + this.skater.direction,
-                getBoardCarryOverlay(this.skater.direction, true),
-              );
-
-              this.skater.vel.x = this.skater.direction === "w" ? -1 : 1;
-            return;
-          }
-
-          // Now the skater is in a whole tile so we start the path
+          // console.log("START RETURN: ", this.skater.pos.x, currCell);
 
           currCell.col = Math.round(currCell.col);
           currCell.row = Math.round(currCell.row);
 
           this.skater.pos = cellToPos(currCell, this.tileSize);
+
+          // temp block out the x direction of rail so that the skater doesn't stand in the way of other skaters who are doing tricks
+
+          const numTilesBlock = 4;
+
+          for (
+            let c = this.obstacle.pos.x / this.tileSize - numTilesBlock;
+            c <
+            this.obstacle.pos.x / this.tileSize;
+            c++
+          ) {
+            (this.skater.scene as Play).parkGrid[
+              this.obstacle.pos.y / this.tileSize
+            ][c] = 1;
+          }
+
+          for (
+            let c = this.obstacle.pos.x / this.tileSize + this.obstacle.width / this.tileSize;
+            c <
+            this.obstacle.pos.x / this.tileSize +
+              this.obstacle.width / this.tileSize +
+              numTilesBlock;
+            c++
+          ) {
+            (this.skater.scene as Play).parkGrid[
+              this.obstacle.pos.y / this.tileSize
+            ][c] = 1;
+          }
 
           const closestCell = findClosestFreeCell(
             currCell,
@@ -708,6 +732,30 @@ class RailObstacleTricks implements Updatable {
           );
 
           if (closestCell === null) throw Error("WHY");
+
+           for (
+            let c = this.obstacle.pos.x / this.tileSize - numTilesBlock;
+            c <
+            this.obstacle.pos.x / this.tileSize;
+            c++
+          ) {
+            (this.skater.scene as Play).parkGrid[
+              this.obstacle.pos.y / this.tileSize
+            ][c] = 0;
+          }
+
+          for (
+            let c = this.obstacle.pos.x / this.tileSize + this.obstacle.width / this.tileSize;
+            c <
+            this.obstacle.pos.x / this.tileSize +
+              this.obstacle.width / this.tileSize +
+              numTilesBlock;
+            c++
+          ) {
+            (this.skater.scene as Play).parkGrid[
+              this.obstacle.pos.y / this.tileSize
+            ][c] = 0;
+          }
 
           this.path = new Path(
             this.skater,
@@ -718,12 +766,16 @@ class RailObstacleTricks implements Updatable {
           (this.skater.scene as Play).parkGrid[closestCell.row][
             closestCell.col
           ] = 1;
+
+          this.skater.animations.play(
+            `walk-board-${this.skater.direction}`,
+            getBoardCarryOverlay(this.skater.direction),
+          );
         }
 
         this.path.update(dt);
 
-        const animName = this.skater.animations.getPlaying();
-
+        // Change animation if skater changed direction
         if (
           animName === null ||
           !animName.includes(`-${this.skater.direction}`)
@@ -733,11 +785,14 @@ class RailObstacleTricks implements Updatable {
             getBoardCarryOverlay(this.skater.direction),
           );
         }
+
         if (this.skater.direction === "e" || this.skater.direction === "w") {
           this.skater.vel.x *= 2;
         }
 
         if (this.path.hasReachedGoal) {
+          // Change animation and direction when going idle!
+
           if (this.skater.pos.y < this.obstacle.pos.y) {
             this.skater.direction = "s";
             this.skater.animations.play(
@@ -790,6 +845,8 @@ class RailObstacleTricks implements Updatable {
     tilesAfterRail: number;
     trickOne: string | null;
     trickTwo: string | null;
+    tilesTrickOne: number;
+    tilesTrickTwo: number;
   }): SequenceAnimation[] {
     const {
       startSide,
@@ -799,20 +856,38 @@ class RailObstacleTricks implements Updatable {
       trickOne,
       trickTwo,
       tilesAfterRail,
+      tilesTrickOne,
+      tilesTrickTwo,
     } = params;
 
     const sequence: SequenceAnimation[] = [];
 
     const isGoingRight = startSide === RailSide.LEFT;
 
-    const noTricks = trickTwo === null && trickOne === null;
-
-    // hard coded extra tiles to compansate for unknown movement in tricks
-
-    const updatedTilesGrind = tilesGrind + (noTricks ? 1 : trickOne === "kickflip" ? 0.5 : trickOne === "shove-it" ? 1 : trickTwo === "shove-it" ? 0.25 : trickTwo === "kickflip" ? 0.75 : 0);
-
     const dir = isGoingRight ? "b-e" : "f-w"; // Whenever skater is going to e the stance is b and the opposite.
     const dxSign = isGoingRight ? 1 : -1;
+
+    const tilesJumpOne = 1;
+    const tilesJumpTwo = trickTwo !== null ? 1.25 : 0.5;
+
+    const tilesX =
+      tilesToRail +
+      tilesJumpOne +
+      tilesTrickOne +
+      tilesGrind +
+      tilesJumpTwo +
+      tilesTrickTwo;
+
+    const diffToEvenTiles = Math.ceil(tilesX) - tilesX;
+
+    // console.log(
+    //   "TILES X ESTIMATE ",
+    //   Math.ceil(tilesX),
+    //   tilesX,
+    //   diffToEvenTiles,
+    // );
+
+    // console.log("TILES X ESTIMATE ", tilesX * 16, diffToEvenTiles * 16);
 
     const pushTrick = (anim: string) =>
       sequence.push({ anim, type: TransitionType.Finished, transition: null });
@@ -855,7 +930,7 @@ class RailObstacleTricks implements Updatable {
       anim: `nose-grind-${dir}`,
       type: TransitionType.Distance,
       transition: {
-        dx: dxSign * tileSize * updatedTilesGrind,
+        dx: dxSign * tileSize * tilesGrind,
         dy: 0,
       },
     });
@@ -863,13 +938,15 @@ class RailObstacleTricks implements Updatable {
     // Maybe do trick two
     if (trickTwo !== null) {
       pushJumpUp();
+      // pushJumpUp();
       pushTrick(isGoingRight ? `${trickTwo}-b` : `${trickTwo}-f`);
       pushJumpDown();
     }
 
     pushJumpDown();
 
-    pushCruise(tilesAfterRail);
+    // console.log("CRUIOSE BAC", tilesAfterRail + diffToEvenTiles);
+    pushCruise(tilesAfterRail + diffToEvenTiles);
 
     sequence.push({
       anim: `flip-${isGoingRight ? "e" : "w"}`,

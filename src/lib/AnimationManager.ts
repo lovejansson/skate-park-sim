@@ -1,14 +1,15 @@
 import type Sprite from "./objects/Sprite.js";
+import type { Vec2 } from "./types.js";
 
-export type AnimationConfigT<T extends AnimationDriver> = {
+export type AnimationConfigT<T extends PositionUpdateType> = {
   driver: T;
   frames: AnimationFrameT<T>[];
   spritesheet: string;
-  repeat: number | boolean; // repeat number of times or true for infinite or false for no
+  repeat: number | boolean;
 };
 
-export type AnimationFrameT<T extends AnimationDriver> =
-  T extends AnimationDriver.TimePosDeltaSync
+export type AnimationFrameT<T extends PositionUpdateType> =
+  T extends PositionUpdateType.Delta
     ? {
         dx: number;
         dy: number;
@@ -16,36 +17,29 @@ export type AnimationFrameT<T extends AnimationDriver> =
         spritesheetX: number;
         spritesheetY: number;
       }
-    : T extends AnimationDriver.TimePosVelSync
-      ? {
-          spritesheetX: number;
-          spritesheetY: number;
-          duration: number;
-        }
-      : {
-          duration: number;
-          spritesheetX: number;
-          spritesheetY: number;
-        };
-export type AnimationFrame =
-  | AnimationFrameT<AnimationDriver.TimePosDeltaSync>
-  | AnimationFrameT<AnimationDriver.Time>
-  | AnimationFrameT<AnimationDriver.TimePosVelSync>;
+    : {
+        spritesheetX: number;
+        spritesheetY: number;
+        duration: number;
+      };
 
-export enum AnimationDriver {
-  TimePosDeltaSync, // Animation updates to next frame after duration ms. Sprite's position is also updated according to dx and dy.
-  TimePosVelSync, // Animation updates to next frame after duration ms. Sprite's position is also updated according to sprite's velocity.
-  Time, // Animation updates after frame rate ms. Movement is not updated at all.
+export type AnimationFrame =
+  | AnimationFrameT<PositionUpdateType.Delta>
+  | AnimationFrameT<PositionUpdateType.Vel>;
+
+export enum PositionUpdateType {
+  Delta, // Animation updates to next frame after duration ms. Sprite's position is also updated according to dx and dy.
+  Vel, // Animation updates to next frame after duration ms. Sprite's position is also updated according to sprite's velocity.
 }
 
-type AnimationStateT<T extends AnimationDriver> =
-  T extends AnimationDriver.TimePosDeltaSync
+type AnimationStateT<T extends PositionUpdateType> =
+  T extends PositionUpdateType.Delta
     ? {
         startX: number;
         startY: number;
         elapsed: number;
       }
-    : T extends AnimationDriver.TimePosVelSync
+    : T extends PositionUpdateType.Vel
       ? {
           elapsed: number;
         }
@@ -57,7 +51,7 @@ export type AnimationOverlay = {
   spritesheet: string;
   frames: { spritesheetX: number; spritesheetY: number }[];
 };
-type PlayingAnimationT<T extends AnimationDriver> = {
+type PlayingAnimationT<T extends PositionUpdateType> = {
   driver: T;
   key: string;
   config: AnimationConfigT<T>;
@@ -74,14 +68,12 @@ type PlayingAnimationT<T extends AnimationDriver> = {
 };
 
 type PlayingAnimation =
-  | PlayingAnimationT<AnimationDriver.TimePosDeltaSync>
-  | PlayingAnimationT<AnimationDriver.Time>
-  | PlayingAnimationT<AnimationDriver.TimePosVelSync>;
+  | PlayingAnimationT<PositionUpdateType.Delta>
+  | PlayingAnimationT<PositionUpdateType.Vel>;
 
 export type AnimationConfig =
-  | AnimationConfigT<AnimationDriver.TimePosDeltaSync>
-  | AnimationConfigT<AnimationDriver.Time>
-  | AnimationConfigT<AnimationDriver.TimePosVelSync>;
+  | AnimationConfigT<PositionUpdateType.Delta>
+  | AnimationConfigT<PositionUpdateType.Vel>;
 
 export default class AnimationManager {
   sprite: Sprite;
@@ -104,6 +96,58 @@ export default class AnimationManager {
     this.overlays.set(name, overlay);
   }
 
+  getEstimatedDistanceForAnim(name: string, vel?: Vec2): Vec2 {
+    const anim = this.animations.get(name);
+
+    if (!anim) throw new AnimationNotAddedError(name);
+
+    const dist = { x: 0, y: 0 };
+
+    switch (anim.driver) {
+      case PositionUpdateType.Delta:
+        if (anim.repeat === false) {
+       
+          for (const f of anim.frames) {
+            dist.x += f.dx;
+            dist.y += f.dy;
+          }
+        } else if (typeof anim.repeat === "number") {
+          for (let i = 0; i < anim.repeat; ++i) {
+            for (const f of anim.frames) {
+              dist.x += f.dx;
+              dist.y += f.dy;
+            }
+          }
+        } else {
+          dist.x = Infinity;
+          dist.y = Infinity;
+
+          for (const f of anim.frames) {
+            dist.x += f.dx;
+            dist.y += f.dy;
+          }
+
+          if (dist.x !== 0) {
+            dist.x = Infinity * Math.sign(dist.x);
+          }
+
+          if (dist.y !== 0) {
+            dist.y = Infinity * Math.sign(dist.y);
+          }
+        }
+
+        break;
+      case PositionUpdateType.Vel:
+        for (let i = 0; i < anim.frames.length; ++i) {
+          dist.x += vel?.x ?? 0;
+          dist.y += vel?.y ?? 0;
+        }
+        break;
+    }
+
+    return dist;
+  }
+
   play(
     name: string,
     overlay?: {
@@ -116,13 +160,13 @@ export default class AnimationManager {
   ) {
     const anim = this.animations.get(name);
 
+    if (!anim) throw new AnimationNotAddedError(name);
+
     const animationOverlay =
       overlay !== undefined ? this.overlays.get(overlay.name) : undefined;
 
-    if (!anim) throw new AnimationNotAddedError(name);
-
     switch (anim.driver) {
-      case AnimationDriver.TimePosDeltaSync:
+      case PositionUpdateType.Delta:
         this.playingAnimation = {
           driver: anim.driver,
           key: name,
@@ -136,21 +180,7 @@ export default class AnimationManager {
           state: { startX: 0, startY: 0, elapsed: 0 },
         };
         break;
-      case AnimationDriver.TimePosVelSync:
-        this.playingAnimation = {
-          driver: anim.driver,
-          key: name,
-          config: anim,
-          overlay:
-            animationOverlay && overlay
-              ? { ...animationOverlay, ...overlay }
-              : undefined,
-          frameCount: 0,
-          loopCount: 0,
-          state: { elapsed: 0 },
-        };
-        break;
-      case AnimationDriver.Time:
+      case PositionUpdateType.Vel:
         this.playingAnimation = {
           driver: anim.driver,
           key: name,
@@ -186,13 +216,15 @@ export default class AnimationManager {
   }
 
   update(dt: number): void {
+    //  console.dir(this.playingAnimation?.key);
+
     if (this.sprite.scene.art === null)
       throw new Error("art is not set on sprite's scene object");
 
     if (this.playingAnimation === null) return;
 
     switch (this.playingAnimation.driver) {
-      case AnimationDriver.TimePosDeltaSync: {
+      case PositionUpdateType.Delta: {
         const frame =
           this.playingAnimation.config.frames[this.playingAnimation.frameCount];
 
@@ -208,7 +240,7 @@ export default class AnimationManager {
 
         break;
       }
-      case AnimationDriver.TimePosVelSync: {
+      case PositionUpdateType.Vel: {
         const frame =
           this.playingAnimation.config.frames[this.playingAnimation.frameCount];
 
@@ -225,25 +257,11 @@ export default class AnimationManager {
 
         break;
       }
-      case AnimationDriver.Time: {
-        const frame =
-          this.playingAnimation.config.frames[this.playingAnimation.frameCount];
-
-        this.playingAnimation.state.elapsed += dt;
-
-        if (this.playingAnimation.state.elapsed >= frame.duration) {
-          this.playingAnimation.frameCount++;
-          this.playingAnimation.state.elapsed = 0;
-        }
-
-        break;
-      }
     }
 
-    if (
-      this.playingAnimation.frameCount ===
-      this.playingAnimation.config.frames.length
-    ) {
+    const numFrames = this.playingAnimation.config.frames.length;
+
+    if (this.playingAnimation.frameCount === numFrames) {
       if (this.playingAnimation.config.repeat === false) {
         this.playingAnimation = null;
       } else if (typeof this.playingAnimation.config.repeat === "number") {
@@ -279,7 +297,6 @@ export default class AnimationManager {
         this.playingAnimation.config.spritesheet,
       );
 
-
     if (
       this.playingAnimation.overlay &&
       this.playingAnimation.overlay.drawBehind
@@ -290,10 +307,9 @@ export default class AnimationManager {
       if (!overlaySpritesheet) return;
 
       const frame =
-        this.playingAnimation.overlay.frames[
-          this.playingAnimation.frameCount
-        ] || this.playingAnimation.overlay.frames[0];
-     
+       this.playingAnimation.overlay.frames[this.playingAnimation.frameCount] ||
+       this.playingAnimation.overlay.frames[0];
+
       ctx.drawImage(
         image,
         frame.spritesheetX,
@@ -334,13 +350,9 @@ export default class AnimationManager {
       if (!overlaySpritesheet) return;
 
       const frame =
-        this.playingAnimation.overlay.frames[
-          this.playingAnimation.frameCount
-        ] || this.playingAnimation.overlay.frames[0];
+        this.playingAnimation.overlay.frames[this.playingAnimation.frameCount] ||
+        this.playingAnimation.overlay.frames[0];
 
-     
-
-    
       ctx.drawImage(
         image,
         frame.spritesheetX,

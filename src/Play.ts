@@ -26,7 +26,7 @@ export default class Play extends Scene {
     this.skaters.push(new Skater(this, { x: 4 * 16, y: 7 * 16 }, "doris", 5));
 
     this.skaters.push(
-      new Skater(this, { x: 5 * 16, y: 7 * 16 }, "vanheden", 5),
+      new Skater(this, { x: 7 * 16, y: 7 * 16 }, "vanheden", 5),
     );
 
     this.art!.images.add("tilemap", this.tilemap.tilemap);
@@ -106,18 +106,18 @@ export default class Play extends Scene {
 
     // Make obsticle tiles not cruisable
     for (const o of this.obstacles) {
-      const startRow = o.pos.y / this.tileSize + (o.type === "rail" ? -1 : 0);
-      const startCol = o.pos.x / this.tileSize + (o.type === "rail" ? -2 : 0);
+      const startRow = o.pos.y / this.tileSize;
+      const startCol = o.pos.x / this.tileSize;
       const endRow = startRow + o.height / this.tileSize;
-      const endCol =
-        startCol + o.width / this.tileSize + (o.type === "rail" ? 2 : 0);
+      const endCol = o.pos.x / this.tileSize + o.width / this.tileSize;
 
-      for (let r = startRow; r <= endRow; ++r) {
-        for (let c = startCol; c <= endCol; ++c) {
+      console.log(startRow, endRow);
+
+      for (let r = startRow; r < endRow; ++r) {
+        for (let c = startCol; c < endCol; ++c) {
           this.parkGrid[r][c] = 1;
         }
       }
-
     }
 
     console.log(this.obstacles);

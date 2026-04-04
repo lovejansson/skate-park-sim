@@ -1,22 +1,11 @@
 # Todo
 
-Skate system overview 
+* Flat Obstacle 
 
-* Adjust skater's positions after a trick since I don't know how far the trick will take them
+* Bowl obstacle
 
-State buy drink
-- go to vending machines
-- buy drink 
-- Go sit down with drink somewhere 
-- Sit and drink
+* Movement between obstacles 
 
-State rest
-- go to some rest spot
-- do some idle pose
+* Add in rest state (just sit somewhere on dedicated places for sitting )
 
-State do trick 
-- go to the start spot
-- wait for obsticle to be free
-- go to the obsticle
-- do trick on obsticle
-- paus 
+* Add in go buy drink state 

@@ -49,15 +49,17 @@ export default class AnimationSequence {
   private currIdx;
   private sprite: Sprite;
   private playingAnim: PlayingAnimation | null;
+  private onAdvanceCb?: (next: string) => void;
 
   isFinished: boolean;
 
-  constructor(sprite: Sprite, sequence: SequenceAnimation[]) {
+  constructor(sprite: Sprite, sequence: SequenceAnimation[], onAdvance?: (next: string) => void) {
     this.sprite = sprite;
     this.sequence = sequence;
     this.currIdx = 0;
     this.playingAnim = null;
     this.isFinished = false;
+    this.onAdvanceCb = onAdvance;
   }
 
   static createAnim<T extends TransitionType>(config: {
@@ -107,6 +109,7 @@ export default class AnimationSequence {
         const spriteDx = this.sprite.pos.x - playingAnim.x;
         const spriteDy = this.sprite.pos.y - playingAnim.y;
 
+    
         const hasReached =
           (targetDx === 0 ||
             (Math.sign(targetDx) === Math.sign(spriteDx) &&
@@ -115,7 +118,10 @@ export default class AnimationSequence {
             (Math.sign(targetDy) === Math.sign(spriteDy) &&
               Math.abs(spriteDy) >= Math.abs(targetDy)));
 
+            
+
         if (hasReached) {
+          
           this.currIdx++;
           if (this.currIdx === this.sequence.length) {
             this.isFinished = true;
@@ -170,6 +176,9 @@ export default class AnimationSequence {
         this.playingAnim = { type: TransitionType.Finished, anim };
         break;
     }
+
+    if(this.onAdvanceCb) this.onAdvanceCb(anim.anim);
+
 
     this.sprite.animations.play(anim.anim, anim.overlay);
   }

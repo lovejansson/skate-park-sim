@@ -43,8 +43,8 @@ export class Path {
 
   update(_: number) {
     if (!this.hasReachedGoal) {
-   
       this.updateVelocity();
+      this.updateDirection();
 
       // When sprite has moved a tile changed to next cell
 
@@ -84,12 +84,15 @@ export class Path {
     }
   }
 
+  private updateDirection(): void {
+    this.sprite.direction = directionLables[this.sprite.vel.y + 1][
+      this.sprite.vel.x + 1
+    ] as Direction;
+  }
+
   private updateVelocity(): void {
     const vel = this.calculateVelocity();
-
     this.sprite.vel.x = vel.x;
     this.sprite.vel.y = vel.y;
-
-    this.sprite.direction = directionLables[vel.y + 1][vel.x + 1] as Direction;
   }
 }

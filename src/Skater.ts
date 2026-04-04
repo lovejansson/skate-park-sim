@@ -1,6 +1,6 @@
 import { Sprite } from "./lib";
 import {
-  AnimationDriver,
+  PositionUpdateType,
   type AnimationConfig,
   type AnimationConfigT,
   type AnimationFrame,
@@ -18,6 +18,11 @@ const spritesheet = spritesheetJSON as unknown as AsepriteJSON;
 type Skill = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 export default class Skater extends Sprite {
+  static CRUISE_SPEED = 4;
+  static GRIND_SPEED = 4;
+  static TRICK_SPEED = 4;
+  static WALK_SPEED = 1;
+
   skill: Skill;
   who: string;
   action: Updatable;
@@ -50,6 +55,53 @@ export default class Skater extends Sprite {
   update(dt: number): void {
     this.animations.update(dt);
     this.action.update(dt);
+    this.updateVelocity();
+  }
+
+  private updateVelocity() {
+    const animName = this.animations.getPlaying();
+
+    if (animName !== null) {
+      let speed = 1;
+
+      if (animName.includes("cruise-ramp")) {
+        return;
+      } else if (animName.includes("cruise")) {
+        speed = Skater.CRUISE_SPEED;
+      } else if (animName.includes("grind")) {
+        speed = Skater.GRIND_SPEED;
+      } else if (animName.includes("idle") || animName.startsWith("flip")) {
+        speed = 0;
+        this.vel.x = 0;
+        this.vel.y = 0;
+      } else if (animName.includes("walk")) {
+        // velocity is updated in Path right now hm
+      } else if (
+        animName.includes("kickflip") ||
+        animName.includes("shove-it")
+      ) {
+        speed = Skater.TRICK_SPEED;
+      }
+
+      switch (this.direction) {
+        case "n":
+          this.vel.y = -speed;
+          this.vel.x = 0;
+          break;
+        case "e":
+          this.vel.x = speed;
+          this.vel.y = 0;
+          break;
+        case "s":
+          this.vel.y = speed;
+          this.vel.x = 0;
+          break;
+        case "w":
+          this.vel.x = -speed;
+          this.vel.y = 0;
+          break;
+      }
+    }
   }
 }
 
@@ -103,7 +155,10 @@ export function getBoardFlipOverlay(direction: Direction) {
   }
 }
 
-export function getBoardCarryOverlay(direction: Direction, isIdle: boolean = false) {
+export function getBoardCarryOverlay(
+  direction: Direction,
+  isIdle: boolean = false,
+) {
   switch (direction) {
     case "n":
       return {
@@ -147,218 +202,234 @@ export function getBoardCarryOverlay(direction: Direction, isIdle: boolean = fal
 
 const AnimationSettings: Record<
   string,
-  | { driver: AnimationDriver; repeat: number | boolean; isAnim: true }
+  | { driver: PositionUpdateType; repeat: number | boolean; isAnim: true }
   | { isAnim: false }
 > = {
   // Time-driven animations, repeating
   "walk-n": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "walk-s": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
 
   "walk-e": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "walk-w": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "walk-board-n": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "walk-board-s": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "walk-board-e": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "walk-board-w": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
-  "idle-stand-n": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
-  "idle-stand-s": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
-  "idle-stand-w": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
-  "idle-stand-e": { driver: AnimationDriver.Time, repeat: true, isAnim: true },
+  "idle-stand-n": {
+    driver: PositionUpdateType.Vel,
+    repeat: true,
+    isAnim: true,
+  },
+  "idle-stand-s": {
+    driver: PositionUpdateType.Vel,
+    repeat: true,
+    isAnim: true,
+  },
+  "idle-stand-w": {
+    driver: PositionUpdateType.Vel,
+    repeat: true,
+    isAnim: true,
+  },
+  "idle-stand-e": {
+    driver: PositionUpdateType.Vel,
+    repeat: true,
+    isAnim: true,
+  },
 
-  "flip-n": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
-  "flip-s": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
-  "flip-w": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
-  "flip-e": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
+  "flip-n": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "flip-s": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "flip-w": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "flip-e": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
 
   // Time-driven animations, no repeat
-  "180-f": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
-  "180-b": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
-  "360-f": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
-  "360-b": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
-  "grab-f": { driver: AnimationDriver.Time, repeat: false, isAnim: true },
+  "180-f": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "180-b": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "360-f": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "360-b": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "grab-f": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
   "kickflip-f": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: false,
     isAnim: true,
   },
   "kickflip-b": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: false,
     isAnim: true,
   },
   "shove-it-f": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: false,
     isAnim: true,
   },
   "shove-it-b": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: false,
     isAnim: true,
   },
   "nose-grind-f-w": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "nose-grind-b-w": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "nose-grind-f-e": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "nose-grind-b-e": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
 
   "cruise-f-e": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "cruise-f-w": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "cruise-b-e": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "cruise-b-w": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
 
   // Distance-based (cruise-ramp for example),
   "cruise-ramp-f-e": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
   "cruise-ramp-f-w": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
   "cruise-ramp-b-e": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
   "cruise-ramp-b-w": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
 
   "jump-up-f-w": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
 
   "jump-up-b-w": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
 
   "jump-up-f-e": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
 
   "jump-up-b-e": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
 
   "jump-down-f-w": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
 
   "jump-down-b-w": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
 
   "jump-down-f-e": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
 
   "jump-down-b-e": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
 
   "ramp-land-w": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
   "ramp-land-e": {
-    driver: AnimationDriver.TimePosDeltaSync,
+    driver: PositionUpdateType.Delta,
     repeat: false,
     isAnim: true,
   },
 
   // Time + movement sync
   "climb-up": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
   "climb-down": {
-    driver: AnimationDriver.TimePosVelSync,
+    driver: PositionUpdateType.Vel,
     repeat: true,
     isAnim: true,
   },
@@ -404,26 +475,30 @@ const Motions: Record<string, { dx: number; dy: number }[]> = {
   "jump-down-e": [{ dx: 8, dy: 8 }],
   "jump-up-w": [{ dx: -4, dy: -8 }],
   "jump-down-w": [{ dx: -8, dy: 8 }],
-  "jump-rail-down": [{ dx: -4, dy: 8 }],
+
+  "kickflip-f": Array(2).fill({ dx: -4, dy: 0 }),
+  "kickflip-b": Array(2).fill({ dx: 4, dy: 0 }),
+  "shove-it-f": Array(4).fill({ dx: -2, dy: 0 }),
+  "shove-it-b": Array(4).fill({ dx: 2, dy: 0 }),
 };
 
 function createAnimationsFromAseprite(
   asepriteData: AsepriteJSON,
   animationSettings: Record<
     string,
-    | { driver: AnimationDriver; repeat: number | boolean; isAnim: true }
+    | { driver: PositionUpdateType; repeat: number | boolean; isAnim: true }
     | { isAnim: false }
   >,
 ): {
-  animations: Record<string, AnimationConfigT<AnimationDriver>>;
+  animations: Record<string, AnimationConfigT<PositionUpdateType>>;
   overlays: Record<string, AnimationOverlay>;
 } {
-  const animations: Record<string, AnimationConfigT<AnimationDriver>> = {};
+  const animations: Record<string, AnimationConfigT<PositionUpdateType>> = {};
   const overlays: Record<string, AnimationOverlay> = {};
 
   for (const tag of asepriteData.meta.frameTags) {
     const settings = animationSettings[tag.name] || {
-      driver: AnimationDriver.Time,
+      driver: PositionUpdateType.Vel,
       repeat: true,
     };
 
@@ -454,7 +529,9 @@ function createAnimationsFromAseprite(
         const frameData = frame.frame;
         const duration = frame.duration;
 
-        if (settings.driver === AnimationDriver.TimePosDeltaSync) {
+        // Add motion for animations that have predefined deltas for each animation frame
+
+        if (settings.driver === PositionUpdateType.Delta) {
           const isCruiseRamp = tag.name.startsWith("cruise-ramp");
           const isLandRamp = tag.name.startsWith("ramp-land");
           const isJump = tag.name.startsWith("jump");
@@ -491,6 +568,15 @@ function createAnimationsFromAseprite(
                 dy: d.dy,
               });
             }
+          } else {
+            const delta = Motions[tag.name][i - tag.from];
+
+            frames.push({
+              spritesheetX: frameData.x,
+              spritesheetY: frameData.y,
+              duration,
+              ...delta,
+            });
           }
         } else {
           frames.push({
