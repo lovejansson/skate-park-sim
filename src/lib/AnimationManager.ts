@@ -106,7 +106,6 @@ export default class AnimationManager {
     switch (anim.driver) {
       case PositionUpdateType.Delta:
         if (anim.repeat === false) {
-       
           for (const f of anim.frames) {
             dist.x += f.dx;
             dist.y += f.dy;
@@ -307,8 +306,9 @@ export default class AnimationManager {
       if (!overlaySpritesheet) return;
 
       const frame =
-       this.playingAnimation.overlay.frames[this.playingAnimation.frameCount] ||
-       this.playingAnimation.overlay.frames[0];
+        this.playingAnimation.overlay.frames[
+          this.playingAnimation.frameCount
+        ] || this.playingAnimation.overlay.frames[0];
 
       ctx.drawImage(
         image,
@@ -350,8 +350,9 @@ export default class AnimationManager {
       if (!overlaySpritesheet) return;
 
       const frame =
-        this.playingAnimation.overlay.frames[this.playingAnimation.frameCount] ||
-        this.playingAnimation.overlay.frames[0];
+        this.playingAnimation.overlay.frames[
+          this.playingAnimation.frameCount
+        ] || this.playingAnimation.overlay.frames[0];
 
       ctx.drawImage(
         image,

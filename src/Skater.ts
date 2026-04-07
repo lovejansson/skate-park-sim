@@ -45,6 +45,7 @@ export default class Skater extends Sprite {
       this.animations.createAnim(name, anim as AnimationConfig);
     }
 
+    console.dir(animations);
     for (const [name, overlay] of Object.entries(overlays)) {
       this.animations.createOverlay(name, overlay);
     }
@@ -64,8 +65,11 @@ export default class Skater extends Sprite {
     if (animName !== null) {
       let speed = 1;
 
-      if (animName.includes("cruise-ramp")) {
-        return;
+      if (
+        animName.includes("cruise-ramp") ||
+        animName.includes("cruise-bowl")
+      ) {
+        speed = 0;
       } else if (animName.includes("cruise")) {
         speed = Skater.CRUISE_SPEED;
       } else if (animName.includes("grind")) {
@@ -83,15 +87,18 @@ export default class Skater extends Sprite {
         // }
       } else if (
         animName.includes("kickflip") ||
-        animName.includes("shove-it") || animName.includes("ollie")
+        animName.includes("shove-it") ||
+        animName.includes("ollie") ||
+        animName.includes("360") ||
+        animName.includes("180") ||
+        animName.includes("180")
       ) {
-        if (this.action.tag === "rail-obstacle-tricks") {
+        if (this.action.tag === "rail-tricks") {
           speed = Skater.TRICK_SPEED;
         } else {
           speed = 0;
         }
       }
-
       switch (this.direction) {
         case "n":
           this.vel.y = -speed;
@@ -310,7 +317,20 @@ const AnimationSettings: Record<
   "180-b": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
   "360-f": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
   "360-b": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+
+  "180-e-cw": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "180-e-ccw": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "180-w-cw": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "180-w-ccw": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "360-e-cw": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "360-e-ccw": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "360-w-cw": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "360-w-ccw": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+
   "grab-f": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "grab-b": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "grab-w": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
+  "grab-e": { driver: PositionUpdateType.Vel, repeat: false, isAnim: true },
   "kickflip-f": {
     driver: PositionUpdateType.Vel,
     repeat: false,
@@ -405,6 +425,49 @@ const AnimationSettings: Record<
     isAnim: true,
   },
 
+  "cruise-bowl-f-e": {
+    driver: PositionUpdateType.Delta,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-bowl-f-w": {
+    driver: PositionUpdateType.Delta,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-bowl-b-e": {
+    driver: PositionUpdateType.Delta,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-bowl-b-w": {
+    driver: PositionUpdateType.Delta,
+    repeat: false,
+    isAnim: true,
+  },
+
+  "cruise-bowl-s-w": {
+    driver: PositionUpdateType.Delta,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-bowl-n-w": {
+    driver: PositionUpdateType.Delta,
+    repeat: false,
+    isAnim: true,
+  },
+
+  "cruise-bowl-s-e": {
+    driver: PositionUpdateType.Delta,
+    repeat: false,
+    isAnim: true,
+  },
+  "cruise-bowl-n-e": {
+    driver: PositionUpdateType.Delta,
+    repeat: false,
+    isAnim: true,
+  },
+
   "jump-up-f-w": {
     driver: PositionUpdateType.Delta,
     repeat: false,
@@ -493,7 +556,7 @@ const AnimationSettings: Record<
 };
 
 const Motions: Record<string, { dx: number; dy: number }[]> = {
-  cruise: [
+  "cruise-ramp": [
     { dx: 7, dy: 9 },
     { dx: 9, dy: 14 },
     { dx: 12, dy: 6 },
@@ -504,6 +567,38 @@ const Motions: Record<string, { dx: number; dy: number }[]> = {
     { dx: 9, dy: -14 },
     { dx: 7, dy: -9 },
     { dx: 0, dy: 0 },
+  ],
+
+  "cruise-bowl-h": [
+    { dx: 2, dy: 4 },
+    { dx: 8, dy: 6 },
+    { dx: 12, dy: 4 },
+    { dx: 16, dy: 2 },
+    { dx: 36, dy: 0 },
+    { dx: 16, dy: -2 },
+    { dx: 12, dy: -4 },
+    { dx: 8, dy: -6 },
+    { dx: 2, dy: -4 },
+  ],
+
+  "cruise-bowl-s": [
+    { dx: 0, dy: 4 },
+    { dx: 0, dy: 24 },
+    { dx: 0, dy: 16 },
+    { dx: 0, dy: 16 },
+    { dx: 0, dy: 16 },
+    { dx: 0, dy: 24 },
+    { dx: 0, dy: 4 },
+  ],
+
+  "cruise-bowl-n": [
+    { dx: 0, dy: -4 },
+    { dx: 0, dy: -24 },
+    { dx: 0, dy: -16 },
+    { dx: 0, dy: -16 },
+    { dx: 0, dy: -16 },
+    { dx: 0, dy: -24 },
+    { dx: 0, dy: -4 },
   ],
 
   "jump-flat": [
@@ -547,26 +642,14 @@ function createAnimationsFromAseprite(
     if (settings.isAnim) {
       const frames: AnimationFrame[] = [];
 
-      const direction = tag.name.includes("-w")
-        ? "w"
-        : tag.name.includes("-e")
-          ? "e"
-          : tag.name.includes("s")
-            ? "s"
-            : "n";
-
-      const stance = tag.name.includes("-b")
-        ? "b"
-        : tag.name.includes("-f")
-          ? "f"
-          : null;
-
+      const direction = tag.name.match(/\-{1}([n, e, s, w, c])\-?/)?.at(1);
       const xDirMultiplier = tag.name.includes("-w") ? -1 : 1;
 
       for (let i = tag.from; i <= tag.to; i++) {
         const frame = asepriteData.frames[`${tag.name}-${i - tag.from}`];
 
-        if (!frame) throw new Error("Missing frame data for tag frame");
+        if (!frame)
+          throw new Error("Missing frame data for tag frame " + tag.name);
 
         const frameData = frame.frame;
         const duration = frame.duration;
@@ -575,11 +658,12 @@ function createAnimationsFromAseprite(
 
         if (settings.driver === PositionUpdateType.Delta) {
           const isCruiseRamp = tag.name.startsWith("cruise-ramp");
+          const isCruiseBowl = tag.name.startsWith("cruise-bowl");
           const isLandRamp = tag.name.startsWith("ramp-land");
           const isJump = tag.name.startsWith("jump");
 
           if (isCruiseRamp) {
-            const delta = Motions["cruise"][i - tag.from];
+            const delta = Motions["cruise-ramp"][i - tag.from];
             frames.push({
               spritesheetX: frameData.x,
               spritesheetY: frameData.y,
@@ -587,6 +671,32 @@ function createAnimationsFromAseprite(
               dx: delta.dx * xDirMultiplier,
               dy: delta.dy,
             });
+          } else if (isCruiseBowl) {
+            if (direction === "s" || direction === "n") {
+
+              const motion = Motions["cruise-bowl-" + direction];
+
+              for (const d of motion) {
+                frames.push({
+                  spritesheetX: frameData.x,
+                  spritesheetY: frameData.y,
+                  duration,
+                  dx: d.dx,
+                  dy: d.dy,
+                });
+              }
+
+              
+            } else {
+              const delta = Motions[`cruise-bowl-h`][i - tag.from];
+              frames.push({
+                spritesheetX: frameData.x,
+                spritesheetY: frameData.y,
+                duration,
+                dx: delta.dx * xDirMultiplier,
+                dy: delta.dy,
+              });
+            }
           } else if (isLandRamp) {
             for (const { dx, dy } of [{ dy: 0, dx: 0 * xDirMultiplier }]) {
               frames.push({
@@ -598,6 +708,8 @@ function createAnimationsFromAseprite(
               });
             }
           } else if (isJump) {
+            if (direction === undefined)
+              throw new Error("No direction found in jump anim");
             const upDown = tag.name.includes("up") ? "up" : "down";
             const motion = Motions[`jump-${upDown}-${direction}`];
 

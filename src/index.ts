@@ -3,7 +3,7 @@ import { createDebugLogger } from "./debugger.ts";
 import Play from "./Play.ts";
 import Pause from "./Pause.ts";
 import "./audio-player/AudioPlayerElement.js";
-import tilemapJSON from "./tilemap-rail-sim.json";
+import tilemapJSON from "./tilemap.json";
 import type { Tilemap } from "./types.ts";
 
 export const debug = createDebugLogger(true);

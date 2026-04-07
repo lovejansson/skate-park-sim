@@ -18,6 +18,14 @@ export function cellToPos(cell: Cell, tileSize: number) {
   };
 }
 
+export function dist(pos: Vec2, pos2: Vec2): Vec2 {
+  return {x: pos.x - pos2.x, y: pos.y - pos2.y};
+}
+export function normalize(pos: Vec2): Vec2 {
+  return {x: pos.x / Math.abs(pos.x), y: pos.y - Math.abs(pos.y)};
+}
+
+
 export function randomEl<T>(arr: T[]): T | null {
   return arr[Math.floor(Math.random() * arr.length)] ?? null;
 }

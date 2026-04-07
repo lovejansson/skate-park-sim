@@ -2,6 +2,7 @@ import AnimationManager from "../AnimationManager.js";
 import ArtObject from "./ArtObject.ts";
 import Scene from "../Scene.js";
 import type { Vec2, Direction } from "../types.ts";
+import { posToCell } from "../../utils.ts";
 
 export default abstract class Sprite extends ArtObject {
     pos: Vec2;
@@ -36,5 +37,9 @@ export default abstract class Sprite extends ArtObject {
     draw(ctx: CanvasRenderingContext2D): void {
      
         this.animations.draw(ctx);
+    }
+
+    getGridCell() {
+        return posToCell(this.pos, this.scene.art!.tileSize);
     }
 }

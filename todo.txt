@@ -1,11 +1,8 @@
 # Todo
 
-* Flat Obstacle 
-
-* Bowl obstacle
 
 * Movement between obstacles 
 
-* Add in rest state (just sit somewhere on dedicated places for sitting )
+* Rest state 
 
-* Add in go buy drink state 
+* Buy something state

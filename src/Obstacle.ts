@@ -1,16 +1,10 @@
-import { Scene, StaticObject } from "./lib";
-import type { Vec2 } from "./lib/types";
-import { manhattan, posToCell, randomEl } from "./utils";
+import { Scene, StaticImage } from "./lib";
+import type { Direction, Vec2 } from "./lib/types";
+import { cellToPos, dist, manhattan, posToCell, randomEl } from "./utils";
 
-export type ObstacleType = "rail" | "bowl" | "flat" | "square" | "ramp";
+export type ObstacleType = "rail" | "bowl" | "flat" | "ramp";
 
-export const obstacles: ObstacleType[] = [
-  "rail",
-  "bowl",
-  "flat",
-  "square",
-  "ramp",
-];
+export const obstacles: ObstacleType[] = ["rail", "bowl", "flat", "ramp"];
 
 export const tricks: Trick[] = [
   "ollie",
@@ -39,22 +33,12 @@ export type Trick =
 
 export const obstacleTricks: { [k in ObstacleType]: Trick[] } = {
   rail: ["50-50-grind", "5-0-grind", "nose-grind"],
-  bowl: ["180", "360", "grab", "50-50-grind", "5-0-grind", "nose-grind"],
+  bowl: ["180", "360", "grab"],
   flat: ["ollie", "pop-shove-it", "kickflip", "360-shove-it"],
-  square: [
-    "ollie",
-    "pop-shove-it",
-    "kickflip",
-    "50-50-grind",
-    "5-0-grind",
-    "nose-grind",
-    "grab",
-    "360-shove-it",
-  ],
   ramp: ["180", "360", "grab"],
 };
 
-export default class Obstacle extends StaticObject {
+export default class Obstacle extends StaticImage {
   readonly type: ObstacleType;
 
   private queue: number[];
@@ -75,9 +59,10 @@ export default class Obstacle extends StaticObject {
     pos: Vec2,
     width: number,
     height: number,
+    image: string,
     numSkatersLimit: number,
   ) {
-    super(scene, pos, width, height);
+    super(scene, pos, width, height, image);
     this.type = type;
     this.queue = [];
     this.isFree = true;
@@ -85,6 +70,10 @@ export default class Obstacle extends StaticObject {
     this.skaters = [];
     this.numSkatersLimit = numSkatersLimit;
     this.tileSize = this.scene.art!.tileSize;
+  }
+
+  getArrivePos(_: Vec2,): Vec2 {
+    return {x: this.pos.x - this.tileSize, y: this.pos.y - this.tileSize};
   }
 
   isOccupiedByMe(id: number): boolean {
@@ -168,16 +157,11 @@ export default class Obstacle extends StaticObject {
   }
 }
 
-
-
-
 export class Rail extends Obstacle {
   private startPositions: { pos: Vec2; railSide: RailSide }[];
-  isDouble: boolean;
 
-  constructor(scene: Scene, pos: Vec2, width: number, height: number, isDouble: boolean = false) {
-    super(scene, "rail", pos, width, height, 4);
-    this.isDouble = isDouble;
+  constructor(scene: Scene, pos: Vec2, width: number, height: number) {
+    super(scene, "rail", pos, width, height, "rail", 4);
     this.startPositions = [
       {
         pos: { x: this.pos.x - 4 * scene.art!.tileSize, y: this.pos.y },
@@ -193,7 +177,46 @@ export class Rail extends Obstacle {
     ];
   }
 
-  getClosestStartPosition(from: Vec2): { pos: Vec2; railSide: RailSide } {
+  getArrivePos(from: Vec2): Vec2 {
+    let min = Infinity;
+
+    let pos: Vec2 = {
+      x: this.pos.x - this.tileSize,
+      y: this.pos.y - this.tileSize,
+    };
+
+    let startCell = posToCell(this.pos, this.tileSize);
+
+    for (
+      let c = startCell.col - 3;
+      c < 3 + this.width / this.tileSize + 3;
+      ++c
+    ) {
+      const dist1 = manhattan(posToCell(from, this.tileSize), {
+        col: c,
+        row: startCell.row - 1,
+      });
+
+      if (dist1 < min) {
+        min = dist1;
+        pos = cellToPos({ col: c, row: startCell.row - 1 }, this.tileSize);
+      }
+
+      const dist2 = manhattan(posToCell(from, this.tileSize), {
+        col: c,
+        row: startCell.row + 1,
+      });
+
+      if (dist2 < min) {
+        min = dist2;
+        pos = cellToPos({ col: c, row: startCell.row + 1 }, this.tileSize);
+      }
+    }
+
+    return pos;
+  }
+
+  getClosestTrickStartPos(from: Vec2): { pos: Vec2; railSide: RailSide } {
     let min = Infinity;
     let pos: { pos: Vec2; railSide: RailSide } = this.startPositions[0];
 
@@ -221,25 +244,34 @@ export enum RailSide {
 export class Ramp extends Obstacle {
   private idlePositions: {
     pos: Vec2;
-    meta: { [key: string]: any };
     isFree: boolean;
   }[];
 
   private skaterIdlePositions: Map<number, number>;
 
-  constructor(
-    scene: Scene,
-    pos: Vec2,
-    width: number,
-    height: number,
-    numSkatersLimit: number,
-    idlePositions: {
-      pos: Vec2;
-      meta: { [key: string]: any };
-    }[],
-  ) {
-    super(scene, "ramp", pos, width, height, numSkatersLimit);
-    this.idlePositions = idlePositions.map((i) => ({ ...i, isFree: true }));
+  constructor(scene: Scene, pos: Vec2, width: number, height: number) {
+    super(scene, "ramp", pos, width, height, "ramp", 4);
+    this.idlePositions = [
+      { pos: { x: this.pos.x, y: this.pos.y + this.tileSize }, isFree: true },
+      {
+        pos: { x: this.pos.x, y: this.pos.y + this.height - this.tileSize * 3 },
+        isFree: true,
+      },
+      {
+        pos: {
+          x: this.pos.x + this.width - this.tileSize,
+          y: this.pos.y + this.tileSize,
+        },
+        isFree: true,
+      },
+      {
+        pos: {
+          x: this.pos.x + this.width - this.tileSize,
+          y: +this.height - this.tileSize * 3,
+        },
+        isFree: true,
+      },
+    ];
     this.skaterIdlePositions = new Map();
   }
 
@@ -342,3 +374,150 @@ export enum RampSide {
   BOTTOM_RIGHT = "bottom-right",
   BOTTOM_LEFT = "bottom-left",
 }
+
+export class Bowl extends Obstacle {
+  private startPositions: { pos: Vec2; bowlSide: BowlSide }[];
+
+  constructor(scene: Scene, pos: Vec2, width: number, height: number) {
+    super(scene, "bowl", pos, width, height, "bowl", 4);
+
+    this.startPositions = [
+      {
+        pos: {
+          x: this.pos.x + Math.floor(this.halfWidth) - this.tileSize,
+          y: this.pos.y - this.tileSize,
+        },
+        bowlSide: BowlSide.TOP,
+      },
+      {
+        pos: {
+          x: this.pos.x + Math.ceil(this.halfWidth),
+          y: this.pos.y + this.height,
+        },
+        bowlSide: BowlSide.BOTTOM,
+      },
+      {
+        pos: {
+          x: this.pos.x - this.tileSize,
+          y: this.pos.y + Math.floor(this.halfHeight) - this.tileSize,
+        },
+        bowlSide: BowlSide.LEFT,
+      },
+      {
+        pos: {
+          x: this.pos.x + this.width,
+          y: this.pos.y + Math.ceil(this.halfHeight) - this.tileSize,
+        },
+        bowlSide: BowlSide.RIGHT,
+      },
+    ];
+  }
+
+  getArrivePos(from: Vec2): Vec2 {
+    let min = Infinity;
+
+    let pos: Vec2 = {
+      x: this.pos.x - this.tileSize,
+      y: this.pos.y - this.tileSize,
+    };
+
+    let startCell = posToCell(this.pos, this.tileSize);
+
+    // Search around the bowl for a position that has the min distance to 'from'
+
+    for (let c = startCell.col; c < this.width / this.tileSize; ++c) {
+      const dist1 = manhattan(posToCell(from, this.tileSize), {
+        col: c,
+        row: startCell.row - 2,
+      });
+
+      if (dist1 < min) {
+        min = dist1;
+        pos = cellToPos({ col: c, row: startCell.row - 1 }, this.tileSize);
+      }
+
+      const dist2 = manhattan(posToCell(from, this.tileSize), {
+        col: c,
+        row: startCell.row + 1,
+      });
+
+      if (dist2 < min) {
+        min = dist2;
+        pos = cellToPos({ col: c, row: startCell.row + 1 }, this.tileSize);
+      }
+    }
+
+    for (let r = startCell.row; r < this.height / this.tileSize; ++r) {
+      const dist1 = manhattan(posToCell(from, this.tileSize), {
+        col: startCell.col - 1,
+        row: r,
+      });
+
+      if (dist1 < min) {
+        min = dist1;
+        pos = cellToPos(
+          {
+            col: startCell.col - 1,
+            row: r,
+          },
+          this.tileSize,
+        );
+      }
+
+      const dist2 = manhattan(posToCell(from, this.tileSize), {
+        col: startCell.col + this.width + 1,
+        row: r,
+      });
+
+      if (dist2 < min) {
+        min = dist2;
+        pos = cellToPos(
+          { col: startCell.col + this.width + 1, row: r },
+          this.tileSize,
+        );
+      }
+    }
+
+    return pos;
+  }
+
+  getClosestTrickStartPos(from: Vec2): { pos: Vec2; bowlSide: BowlSide } {
+    let min = Infinity;
+    let pos: { pos: Vec2; bowlSide: BowlSide } = this.startPositions[0];
+
+    for (const p of this.startPositions) {
+      const dist = manhattan(
+        posToCell(from, this.tileSize),
+        posToCell(p.pos, this.tileSize),
+      );
+
+      if (dist < min) {
+        min = dist;
+        pos = p;
+      }
+    }
+
+    return pos;
+  }
+}
+
+export enum BowlSide {
+  TOP = "top",
+  RIGHT = "right",
+  BOTTOM = "bottom",
+  LEFT = "left",
+}
+
+export const bowlSideToStartDir: Map<BowlSide, Direction> = new Map([
+  [BowlSide.TOP, "s"],
+  [BowlSide.RIGHT, "w"],
+  [BowlSide.BOTTOM, "n"],
+  [BowlSide.LEFT, "e"],
+]);
+
+export const bowlSideToEndDir: Map<BowlSide, Direction> = new Map([
+  [BowlSide.TOP, "n"],
+  [BowlSide.RIGHT, "e"],
+  [BowlSide.BOTTOM, "s"],
+  [BowlSide.LEFT, "w"],
+]);
