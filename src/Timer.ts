@@ -5,6 +5,10 @@ export default class Timer {
     this.isStopped = false;
   }
 
+  stop() {
+    this.isStopped = true;
+  }
+
   start(ms: number) {
     setTimeout(() => {
       this.isStopped = true;

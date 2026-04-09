@@ -53,7 +53,11 @@ export default class AnimationSequence {
 
   isFinished: boolean;
 
-  constructor(sprite: Sprite, sequence: SequenceAnimation[], onAdvance?: (next: string) => void) {
+  constructor(
+    sprite: Sprite,
+    sequence: SequenceAnimation[],
+    onAdvance?: (next: string) => void,
+  ) {
     this.sprite = sprite;
     this.sequence = sequence;
     this.currIdx = 0;
@@ -90,7 +94,7 @@ export default class AnimationSequence {
     this.initPlayingAnimation();
   }
 
-  getCurrentAnimation(): {name: string, index: number} {
+  getCurrentAnimation(): { name: string; index: number } {
     return { name: this.sequence[this.currIdx]?.anim, index: this.currIdx };
   }
 
@@ -109,7 +113,6 @@ export default class AnimationSequence {
         const spriteDx = this.sprite.pos.x - playingAnim.x;
         const spriteDy = this.sprite.pos.y - playingAnim.y;
 
-    
         const hasReached =
           (targetDx === 0 ||
             (Math.sign(targetDx) === Math.sign(spriteDx) &&
@@ -118,10 +121,7 @@ export default class AnimationSequence {
             (Math.sign(targetDy) === Math.sign(spriteDy) &&
               Math.abs(spriteDy) >= Math.abs(targetDy)));
 
-            
-
         if (hasReached) {
-          
           this.currIdx++;
           if (this.currIdx === this.sequence.length) {
             this.isFinished = true;
@@ -177,9 +177,7 @@ export default class AnimationSequence {
         break;
     }
 
-    if(this.onAdvanceCb) this.onAdvanceCb(anim.anim);
-
-
     this.sprite.animations.play(anim.anim, anim.overlay);
+    if (this.onAdvanceCb) this.onAdvanceCb(anim.anim);
   }
 }

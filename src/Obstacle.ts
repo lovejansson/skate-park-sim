@@ -1,5 +1,7 @@
+import { findClosestFreeCell, getRandomFreeCell } from "./grid";
 import { Scene, StaticImage } from "./lib";
 import type { Direction, Vec2 } from "./lib/types";
+import type Play from "./Play";
 import { cellToPos, dist, manhattan, posToCell, randomEl } from "./utils";
 
 export type ObstacleType = "rail" | "bowl" | "flat" | "ramp";
@@ -72,8 +74,12 @@ export default class Obstacle extends StaticImage {
     this.tileSize = this.scene.art!.tileSize;
   }
 
-  getArrivePos(_: Vec2,): Vec2 {
-    return {x: this.pos.x - this.tileSize, y: this.pos.y - this.tileSize};
+  isStartOnGround() {
+    return this.type !== "ramp";
+  }
+
+  getArrivePos(_: Vec2): Vec2 {
+    return { x: this.pos.x - this.tileSize, y: this.pos.y - this.tileSize };
   }
 
   isOccupiedByMe(id: number): boolean {
@@ -241,6 +247,8 @@ export enum RailSide {
   RIGHT = "right",
 }
 
+export const BEHIND_RAMP_OFFSET = 3;
+
 export class Ramp extends Obstacle {
   private idlePositions: {
     pos: Vec2;
@@ -267,7 +275,7 @@ export class Ramp extends Obstacle {
       {
         pos: {
           x: this.pos.x + this.width - this.tileSize,
-          y: +this.height - this.tileSize * 3,
+          y: this.pos.y + this.height - this.tileSize * 3,
         },
         isFree: true,
       },
@@ -323,9 +331,9 @@ export class Ramp extends Obstacle {
       return RampSide.TOP_LEFT;
     } else if (idlePos.x < centerX && idlePos.y > centerY) {
       return RampSide.BOTTOM_LEFT;
-    } else if (idlePos.x > centerX && idlePos.y < centerY) {
-      return RampSide.BOTTOM_RIGHT;
     } else if (idlePos.x > centerX && idlePos.y > centerY) {
+      return RampSide.BOTTOM_RIGHT;
+    } else if (idlePos.x > centerX && idlePos.y < centerY) {
       return RampSide.TOP_RIGHT;
     }
 
@@ -354,7 +362,6 @@ export class Ramp extends Obstacle {
           indices.push(i);
         }
       }
-
       return randomEl(indices);
     })();
 
@@ -365,6 +372,18 @@ export class Ramp extends Obstacle {
     this.skaterIdlePositions.set(id, idlePosIdx);
 
     return idlePosIdx;
+  }
+
+  getArrivePos(idlePos: Vec2): Vec2 {
+    const centerY = this.pos.y + this.halfHeight;
+
+    return {
+      x: idlePos.x,
+      y:
+        idlePos.y < centerY
+          ? this.pos.y + (BEHIND_RAMP_OFFSET - 1) * this.tileSize
+          : this.pos.y + this.height,
+    };
   }
 }
 
@@ -425,7 +444,13 @@ export class Bowl extends Obstacle {
 
     // Search around the bowl for a position that has the min distance to 'from'
 
-    for (let c = startCell.col; c < this.width / this.tileSize; ++c) {
+    // Top and bottom
+
+    for (
+      let c = startCell.col;
+      c < startCell.col + this.width / this.tileSize;
+      ++c
+    ) {
       const dist1 = manhattan(posToCell(from, this.tileSize), {
         col: c,
         row: startCell.row - 2,
@@ -433,21 +458,28 @@ export class Bowl extends Obstacle {
 
       if (dist1 < min) {
         min = dist1;
-        pos = cellToPos({ col: c, row: startCell.row - 1 }, this.tileSize);
+        pos = cellToPos({ col: c, row: startCell.row - 2 }, this.tileSize);
       }
 
       const dist2 = manhattan(posToCell(from, this.tileSize), {
         col: c,
-        row: startCell.row + 1,
+        row: startCell.row + this.height / this.tileSize + 1,
       });
 
       if (dist2 < min) {
         min = dist2;
-        pos = cellToPos({ col: c, row: startCell.row + 1 }, this.tileSize);
+        pos = cellToPos(
+          { col: c, row: startCell.row + this.height / this.tileSize + 1 },
+          this.tileSize,
+        );
       }
     }
 
-    for (let r = startCell.row; r < this.height / this.tileSize; ++r) {
+    for (
+      let r = startCell.row;
+      r < startCell.row + this.height / this.tileSize;
+      ++r
+    ) {
       const dist1 = manhattan(posToCell(from, this.tileSize), {
         col: startCell.col - 1,
         row: r,
@@ -465,14 +497,14 @@ export class Bowl extends Obstacle {
       }
 
       const dist2 = manhattan(posToCell(from, this.tileSize), {
-        col: startCell.col + this.width + 1,
+        col: startCell.col + this.width / this.tileSize + 1,
         row: r,
       });
 
       if (dist2 < min) {
         min = dist2;
         pos = cellToPos(
-          { col: startCell.col + this.width + 1, row: r },
+          { col: startCell.col + this.width / this.tileSize + 1, row: r },
           this.tileSize,
         );
       }
@@ -521,3 +553,17 @@ export const bowlSideToEndDir: Map<BowlSide, Direction> = new Map([
   [BowlSide.BOTTOM, "s"],
   [BowlSide.LEFT, "w"],
 ]);
+
+export class Flat extends Obstacle {
+  constructor(scene: Scene, pos: Vec2, width: number, height: number) {
+    super(scene, "flat", pos, width, height, "flat", 4);
+  }
+
+  getArrivePos(_: Vec2): Vec2 {
+    const cell = getRandomFreeCell((this.scene as Play).parkGrid);
+
+    if (cell === null) throw new Error("No free cell found!");
+
+    return { x: this.tileSize * 15, y: this.tileSize * 6 };
+  }
+}

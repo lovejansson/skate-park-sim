@@ -24,6 +24,7 @@ import AnimationSequence, {
 import type { Direction, Vec2 } from "./lib";
 import { findClosestFreeCell } from "./grid";
 import { getBoardCarryOverlay, getBoardFlipOverlay } from "./Skater";
+import type Bench from "./Bench";
 
 export default class SkatingAtPark implements Updatable {
   static tag: "skating-at-park" = "skating-at-park";
@@ -33,11 +34,13 @@ export default class SkatingAtPark implements Updatable {
   private tricks: Trick[];
   private obstacles: ObstacleType[];
   private currAction: Updatable | null;
-  private currObstacle: Obstacle | null;
+  private obstacle: Obstacle | null;
+  private bench: Bench | null;
   private tileSize: number;
 
   constructor(skater: Skater) {
     this.skater = skater;
+    this.skater.action = this.tag;
     this.tileSize = this.skater.tileSize;
     this.tricks = tricks.slice(0, skater.skill - 1);
     this.obstacles = obstacles.filter((o) =>
@@ -45,85 +48,249 @@ export default class SkatingAtPark implements Updatable {
     );
 
     this.currAction = null;
-    this.currObstacle = null;
+    this.obstacle = null;
+    this.bench = null;
   }
 
   update(dt: number): void {
     if (this.currAction === null) {
-      // Select new obstacle or to sit idle somewhere
-      const willSkate = randomBool();
+      switch (this.skater.initAction) {
+        case "bench":
+          this.bench = randomEl(
+            (this.skater.scene as Play).benches.filter((o) => o.isFree),
+          )!;
 
-      if (willSkate) {
-        this.currObstacle = randomEl(
-          (this.skater.scene as Play).obstacles.filter((o) =>
-            this.obstacles.includes(o.type),
-          ),
-        )!;
-        this.currAction = createAction(
-          CruiseTo.TAG,
-          this.skater,
-          this.currObstacle.getArrivePos(this.skater.pos),
-        );
-      } else {
-        const bench = randomEl(
-          (this.skater.scene as Play).staticImages.filter(
-            (o) => o.image === "bench",
-          ),
-        )!;
+          this.bench.isFree = false;
 
-        this.currObstacle = null;
+          this.obstacle = null;
 
-        this.currAction = createAction(CruiseTo.TAG, this.skater, {x: bench.pos.x, y: bench.pos.y + this.tileSize});
+          this.currAction = createAction(CruiseTo.TAG, this.skater, {
+            x: this.bench.pos.x,
+            y: this.bench.pos.y + this.tileSize,
+          });
+          break;
+        case "rail":
+          this.obstacle = (this.skater.scene as Play).obstacles.find(
+            (o) => o.type === "rail",
+          )!;
+          this.obstacle.arrive(this.skater.id);
+
+          this.currAction = createAction(
+            CruiseTo.TAG,
+            this.skater,
+            this.obstacle!.getArrivePos(
+              this.obstacle!.type === "ramp"
+                ? (this.obstacle as Ramp).getMyIdlePos(this.skater.id)
+                : this.skater.pos,
+            ),
+          );
+          break;
+        case "bowl":
+          this.obstacle = (this.skater.scene as Play).obstacles.find(
+            (o) => o.type === "bowl",
+          )!;
+          this.obstacle.arrive(this.skater.id);
+
+          this.currAction = createAction(
+            CruiseTo.TAG,
+            this.skater,
+            this.obstacle!.getArrivePos(
+              this.obstacle!.type === "ramp"
+                ? (this.obstacle as Ramp).getMyIdlePos(this.skater.id)
+                : this.skater.pos,
+            ),
+          );
+          break;
+        case "flat":
+          this.obstacle = (this.skater.scene as Play).obstacles.find(
+            (o) => o.type === "flat",
+          )!;
+          this.obstacle.arrive(this.skater.id);
+
+          this.currAction = createAction(
+            CruiseTo.TAG,
+            this.skater,
+            this.obstacle!.getArrivePos(
+              this.obstacle!.type === "ramp"
+                ? (this.obstacle as Ramp).getMyIdlePos(this.skater.id)
+                : this.skater.pos,
+            ),
+          );
+          break;
+        case "ramp":
+          this.obstacle = (this.skater.scene as Play).obstacles.find(
+            (o) => o.type === "ramp",
+          )!;
+          this.obstacle.arrive(this.skater.id);
+
+          this.currAction = createAction(
+            CruiseTo.TAG,
+            this.skater,
+            this.obstacle!.getArrivePos(
+              this.obstacle!.type === "ramp"
+                ? (this.obstacle as Ramp).getMyIdlePos(this.skater.id)
+                : this.skater.pos,
+            ),
+          );
+          break;
       }
+      // const hasFreeObstacles =
+      //   (this.skater.scene as Play).obstacles.find(
+      //     (o) => !o.isTooCrowded() && this.obstacles.includes(o.type),
+      //   ) !== undefined;
+      // const hasFreeBenches = (this.skater.scene as Play).benches.find(
+      //   (b) => b.isFree,
+      // );
+
+      // const willSkate = randomBool() && hasFreeObstacles;
+
+      // if (willSkate) {
+      //   for (let i = 0; i < this.obstacles.length; ++i) {
+      //     const obstacleType = randomEl(this.obstacles);
+      //     this.obstacle = (this.skater.scene as Play).obstacles.find(
+      //       (o) => o.type === obstacleType,
+      //     )!;
+      //     if (!this.obstacle.isTooCrowded()) break;
+      //   }
+
+      //   if (this.obstacle && this.obstacle.isTooCrowded()) {
+      //     return;
+      //   }
+
+      //   this.obstacle!.arrive(this.skater.id);
+
+      //   this.currAction = createAction(
+      //     CruiseTo.TAG,
+      //     this.skater,
+      //     this.obstacle!.getArrivePos(
+      //       this.obstacle!.type === "ramp"
+      //         ? (this.obstacle as Ramp).getMyIdlePos(this.skater.id)
+      //         : this.skater.pos,
+      //     ),
+      //   );
+      // } else if (hasFreeBenches) {
+      //   console.log("WILL IDLE");
+      //   this.bench = randomEl(
+      //     (this.skater.scene as Play).benches.filter((o) => o.isFree),
+      //   )!;
+
+      //   this.bench.isFree = false;
+
+      //   this.obstacle = null;
+
+      //   this.currAction = createAction(CruiseTo.TAG, this.skater, {
+      //     x: this.bench.pos.x,
+      //     y: this.bench.pos.y + this.tileSize,
+      //   });
+      // }
     } else if (this.currAction.isComplete()) {
       if (this.currAction.tag === CruiseTo.TAG) {
-        if (this.currObstacle !== null) {
-          switch (this.currObstacle.type) {
+        if (this.obstacle !== null) {
+          this.skater.obstacle = this.obstacle.id;
+          switch (this.obstacle.type) {
             case "rail":
               this.currAction = createAction(
-                this.currObstacle.type,
+                this.obstacle.type,
                 this.skater,
-                this.currObstacle as Rail,
+                this.obstacle as Rail,
                 TEN_MINUTES,
               );
               break;
             case "bowl":
               this.currAction = createAction(
-                this.currObstacle.type,
+                this.obstacle.type,
                 this.skater,
-                this.currObstacle as Bowl,
+                this.obstacle as Bowl,
                 TEN_MINUTES,
               );
               break;
             case "flat":
               this.currAction = createAction(
-                this.currObstacle.type,
+                this.obstacle.type,
                 this.skater,
-                this.currObstacle as Obstacle,
+                this.obstacle as Obstacle,
                 TEN_MINUTES,
               );
               break;
             case "ramp":
               this.currAction = createAction(
-                this.currObstacle.type,
+                this.obstacle.type,
                 this.skater,
-                this.currObstacle as Ramp,
+                this.obstacle as Ramp,
                 TEN_MINUTES,
               );
               break;
           }
-        } else {
+        } else if (this.bench !== null) {
+          this.skater.bench = this.bench.id;
           this.currAction = createAction(
             SittingBench.TAG,
             this.skater,
+            this.bench,
             FIVE_MINUTES,
           );
+        } else {
+          throw new Error("Invalid state: bench and obstacle is null");
         }
       } else {
+        if (this.currAction.tag === SittingBench.TAG) {
+          this.bench!.isFree === true;
+          this.bench = null;
+        } else {
+          this.obstacle = null;
+        }
+        const hasFreeObstacles =
+          (this.skater.scene as Play).obstacles.find(
+            (o) => !o.isTooCrowded() && this.obstacles.includes(o.type),
+          ) !== undefined;
+        const hasFreeBenches = (this.skater.scene as Play).benches.find(
+          (b) => b.isFree,
+        );
+
+        const willSkate = randomBool() && hasFreeObstacles;
+
+        if (willSkate) {
+          for (let i = 0; i < this.obstacles.length; ++i) {
+            const obstacleType = randomEl(this.obstacles);
+            this.obstacle = (this.skater.scene as Play).obstacles.find(
+              (o) => o.type === obstacleType,
+            )!;
+            if (!this.obstacle.isTooCrowded()) break;
+          }
+
+          if (this.obstacle && this.obstacle.isTooCrowded()) {
+            return;
+          }
+
+          this.obstacle!.arrive(this.skater.id);
+
+          this.currAction = createAction(
+            CruiseTo.TAG,
+            this.skater,
+            this.obstacle!.getArrivePos(
+              this.obstacle!.type === "ramp"
+                ? (this.obstacle as Ramp).getMyIdlePos(this.skater.id)
+                : this.skater.pos,
+            ),
+          );
+        } else if (hasFreeBenches) {
+          console.log("WILL IDLE");
+          this.bench = randomEl(
+            (this.skater.scene as Play).benches.filter((o) => o.isFree),
+          )!;
+
+          this.bench.isFree = false;
+          this.obstacle = null;
+
+          this.currAction = createAction(CruiseTo.TAG, this.skater, {
+            x: this.bench.pos.x,
+            y: this.bench.pos.y + this.tileSize,
+          });
+        }
       }
     }
 
-    this.currAction!.update(dt);
+    if (this.currAction !== null) this.currAction.update(dt);
   }
 
   isComplete(): boolean {
@@ -143,6 +310,7 @@ class RailObstacle implements Updatable {
 
   constructor(skater: Skater, obstacle: Rail, ms: number) {
     this.skater = skater;
+    this.skater.action = this.tag;
     this.timer = new Timer();
     this.timer.start(ms);
     this.currAction = null;
@@ -212,9 +380,7 @@ class FlatObstacle implements Updatable {
 
   constructor(skater: Skater, obstacle: Obstacle, ms: number) {
     this.skater = skater;
-    this.skater.pos.x = obstacle.pos.x;
-    this.skater.pos.y = obstacle.pos.y;
-
+    this.skater.action = this.tag;
     this.skater.direction = randomEl(["s", "n"]) as Direction;
 
     this.animationSeq = new AnimationSequence(
@@ -274,69 +440,83 @@ class FlatObstacle implements Updatable {
  * Skater has already arrived at the correct position at the ramp obstacle here, so this
  * class simply moves the skater up the ramp!
  */
-class ClimbRampObstacle implements Updatable {
+class ClimbRamp implements Updatable {
   static tag: "climb-ramp" = "climb-ramp";
-  readonly tag: "climb-ramp" = ClimbRampObstacle.tag;
+  readonly tag: "climb-ramp" = ClimbRamp.tag;
 
   private skater: Skater;
-  private obstacle: Obstacle;
+  private obstacle: Ramp;
   private animationSequence: AnimationSequence;
   private tileSize: number;
   private rampSide: RampSide;
 
-  constructor(skater: Skater, obstacle: Obstacle, rampSide: RampSide) {
+  constructor(
+    skater: Skater,
+    obstacle: Ramp,
+    rampSide: RampSide,
+    climbUp: boolean,
+  ) {
     this.skater = skater;
+    this.skater.action = this.tag;
     this.obstacle = obstacle;
     this.tileSize = this.skater.tileSize;
     this.rampSide = rampSide;
+    this.skater.direction = climbUp ? "n" : "s";
+    this.skater.vel.y = climbUp ? -1 : 1;
 
-    this.skater.direction = (() => {
-      switch (this.rampSide) {
-        case RampSide.TOP_LEFT:
-        case RampSide.TOP_RIGHT:
-          return "s";
-        case RampSide.BOTTOM_RIGHT:
-        case RampSide.BOTTOM_LEFT:
-          return "n";
-      }
-    })();
+    switch (this.rampSide) {
+      case RampSide.TOP_LEFT:
+        this.animationSequence = new AnimationSequence(
+          this.skater,
+          [
+            AnimationSequence.createAnim({
+              type: TransitionType.Distance,
+              anim: "walk-board-s",
+              overlay: getBoardCarryOverlay("n", false),
+              transition: { dx: 0, dy: this.tileSize * 2 * this.skater.vel.y },
+            }),
+          ],
+          (anim: string) => {
+            console.log("WOOP AN ANIM ?", anim);
+          },
+        );
+        break;
+      case RampSide.TOP_RIGHT:
+        this.animationSequence = new AnimationSequence(this.skater, [
+          AnimationSequence.createAnim({
+            type: TransitionType.Distance,
+            anim: "walk-board-s",
+            overlay: getBoardCarryOverlay("s", false),
+            transition: { dx: 0, dy: this.tileSize * 2 * this.skater.vel.y },
+          }),
+        ]);
+        break;
+      case RampSide.BOTTOM_RIGHT:
+      case RampSide.BOTTOM_LEFT:
+        const seq = [
+          AnimationSequence.createAnim({
+            type: TransitionType.Distance,
+            anim: `walk-board-${this.skater.direction}`,
+            overlay: getBoardCarryOverlay("n", false),
+            transition: { dx: 0, dy: this.tileSize * this.skater.vel.y },
+          }),
 
-    this.skater.vel.y = (() => {
-      switch (this.rampSide) {
-        case RampSide.TOP_LEFT:
-        case RampSide.TOP_RIGHT:
-          return 1;
-        case RampSide.BOTTOM_RIGHT:
-        case RampSide.BOTTOM_LEFT:
-          return -1;
-      }
-    })();
+          AnimationSequence.createAnim({
+            type: TransitionType.Distance,
+            anim: climbUp ? "climb-up" : "climb-down",
+            overlay: getBoardCarryOverlay("n", false),
+            transition: { dx: 0, dy: this.tileSize * 2 * this.skater.vel.y },
+          }),
+        ];
 
-    this.animationSequence = new AnimationSequence(this.skater, [
-      AnimationSequence.createAnim({
-        type: TransitionType.Distance,
-        anim: `walk-board-${this.skater.direction}`,
-        overlay: { name: "board-carry-r", drawBehind: true, dy: 3, dx: 2 },
-        transition: { dx: 0, dy: this.tileSize * this.skater.vel.y },
-      }),
+        if (!climbUp) {
+          seq.reverse();
+        }
+        this.animationSequence = new AnimationSequence(this.skater, seq);
+        break;
+    }
 
-      AnimationSequence.createAnim({
-        type: TransitionType.Distance,
-        anim: "climb-up",
-        overlay: { name: "board-carry-r", drawBehind: true, dy: 3, dx: 2 },
-        transition: { dx: 0, dy: this.tileSize * 2 * this.skater.vel.y },
-      }),
-
-      AnimationSequence.createAnim({
-        type: TransitionType.Distance,
-        anim: `walk-board-${this.skater.direction}`,
-        overlay: { name: "board-carry-r", drawBehind: true, dy: 3, dx: 2 },
-        transition: {
-          dx: 0,
-          dy: this.tileSize * this.skater.vel.y * 0.5,
-        },
-      }),
-    ]);
+    this.animationSequence.start();
   }
 
   update(dt: number): void {
@@ -354,31 +534,9 @@ class ClimbRampObstacle implements Updatable {
       if (
         !this.skater.animations.isPlaying(`idle-stand-${this.skater.direction}`)
       ) {
-        const overlay = (() => {
-          switch (this.rampSide) {
-            case RampSide.TOP_LEFT:
-              return { name: "board-carry-c", drawOnTop: true, dy: 6, dx: 2 };
-            case RampSide.BOTTOM_LEFT:
-              return { name: "board-carry-c", drawOnTop: true, dy: 6, dx: 2 };
-            case RampSide.BOTTOM_RIGHT:
-              return {
-                name: "board-carry-c",
-                drawBehind: true,
-                dy: -1,
-                dx: -2,
-              };
-            case RampSide.TOP_RIGHT:
-              return {
-                name: "board-carry-c",
-                drawBehind: true,
-                dy: -1,
-                dx: -2,
-              };
-          }
-        })();
         this.skater.animations.play(
           `idle-stand-${this.skater.direction}`,
-          overlay,
+          getBoardCarryOverlay(this.skater.direction, true),
         );
       }
     }
@@ -393,7 +551,7 @@ class ClimbRampObstacle implements Updatable {
   }
 }
 
-class RampObstacle implements Updatable {
+export class RampObstacle implements Updatable {
   static tag: "ramp" = "ramp";
   readonly tag: "ramp" = RampObstacle.tag;
   private skater: Skater;
@@ -405,6 +563,7 @@ class RampObstacle implements Updatable {
 
   constructor(skater: Skater, obstacle: Ramp, ms: number) {
     this.skater = skater;
+    this.skater.action = this.tag;
     this.timer = new Timer();
     this.timer.start(ms);
     this.currAction = null;
@@ -419,86 +578,61 @@ class RampObstacle implements Updatable {
 
   update(dt: number): void {
     if (this.currAction === null) {
-      // Initially just place three skaters on the ramp and let one of them climb!
-
-      const rampSide = this.obstacle.getIdlePosSide(this.skater.id);
-
-      switch (rampSide) {
-        case RampSide.TOP_LEFT:
-          this.obstacle.standInLine(this.skater.id);
-          this.setSkaterPosBeforeWaitMyTurn();
-
-          this.currAction = createAction(
-            WaitingMyTurn.TAG,
-            this.skater,
-            this.obstacle,
-          );
-
-          break;
-        case RampSide.TOP_RIGHT:
-          this.obstacle.standInLine(this.skater.id);
-          this.setSkaterPosBeforeWaitMyTurn();
-          this.currAction = createAction(
-            WaitingMyTurn.TAG,
-            this.skater,
-            this.obstacle,
-          );
-          break;
-        case RampSide.BOTTOM_RIGHT:
-          this.currAction = createAction(
-            ClimbRampObstacle.tag,
-            this.skater,
-            this.obstacle,
-            this.start.rampSide,
-          );
-          break;
-        case RampSide.BOTTOM_LEFT:
-          this.obstacle.standInLine(this.skater.id);
-          this.setSkaterPosBeforeWaitMyTurn();
-          this.currAction = createAction(
-            WaitingMyTurn.TAG,
-            this.skater,
-            this.obstacle,
-          );
-          break;
-      }
+      this.currAction = createAction(
+        ClimbRamp.tag,
+        this.skater,
+        this.obstacle,
+        this.start.rampSide,
+        true,
+      );
     } else if (this.currAction.isComplete()) {
-      if (this.currAction.tag === ClimbRampObstacle.tag) {
-        this.obstacle.standInLine(this.skater.id);
-        this.setSkaterPosBeforeWaitMyTurn();
+      if (this.timer.isStopped) {
+        this.setSkaterPosBeforeClimbDown();
         this.currAction = createAction(
-          WaitingMyTurn.TAG,
+          ClimbRamp.tag,
           this.skater,
           this.obstacle,
+          this.start.rampSide,
+          false,
         );
-      } else if (this.currAction.tag === WaitingMyTurn.TAG) {
-        // After WaitingMyTurn we got a new idle position assigned to the skater where they should end the round
+      } else {
+        if (this.currAction.tag === ClimbRamp.tag) {
+          this.obstacle.standInLine(this.skater.id);
+          this.setSkaterPosBeforeWaitMyTurn();
+          this.currAction = createAction(
+            WaitingMyTurn.TAG,
+            this.skater,
+            this.obstacle,
+          );
+        } else if (this.currAction.tag === WaitingMyTurn.TAG) {
+          // After WaitingMyTurn we got a new idle position assigned to the skater where they should end the round
 
-        const idlePos = this.obstacle.getMyIdlePos(this.skater.id);
-        const rampSide = this.obstacle.getIdlePosSide(this.skater.id);
+          const idlePos = this.obstacle.getMyIdlePos(this.skater.id);
+          const rampSide = this.obstacle.getIdlePosSide(this.skater.id);
 
-        this.end = { pos: idlePos, rampSide };
+          this.end = { pos: idlePos, rampSide };
 
-        this.currAction = createAction(
-          RampTricks.TAG,
-          this.skater,
-          this.obstacle,
-          this.start,
-          this.end,
-        );
-      } else if (this.currAction.tag === RampTricks.TAG) {
-        this.obstacle.endSkate(this.skater.id);
-        this.obstacle.standInLine(this.skater.id);
+          this.currAction = createAction(
+            RampTricks.TAG,
+            this.skater,
+            this.obstacle,
+            this.start,
+            this.end,
+          );
+        } else if (this.currAction.tag === RampTricks.TAG) {
+          this.obstacle.endSkate(this.skater.id);
+          this.obstacle.standInLine(this.skater.id);
 
-        // After skater is done, the "end" side is now the new start side.
-        this.start = { ...this.end };
+          // After skater is done, the "end" side is now the new start side.
+          this.start = { ...this.end };
 
-        this.setSkaterPosBeforeWaitMyTurn();
-        this.currAction = createAction(
-          WaitingMyTurn.TAG,
-          this.skater,
-          this.obstacle,
-        );
+          this.setSkaterPosBeforeWaitMyTurn();
+          this.currAction = createAction(
+            WaitingMyTurn.TAG,
+            this.skater,
+            this.obstacle,
+          );
+        }
       }
     }
 
@@ -529,13 +663,19 @@ class RampObstacle implements Updatable {
     })();
 
     this.skater.pos.x = this.start.pos.x + fenceDiffX;
-    this.skater.pos.y = this.start.pos.y - this.skater.tileSize * 1.5;
+    this.skater.pos.y = this.obstacle.getMyIdlePos(this.skater.id).y;
+  }
+
+  private setSkaterPosBeforeClimbDown() {
+    const idlePos = this.obstacle.getMyIdlePos(this.skater.id);
+    this.skater.pos.x = idlePos.x;
+    this.skater.pos.y = idlePos.y;
   }
 
   isComplete(): boolean {
     return (
       this.timer.isStopped &&
-      this.currAction !== null &&
+      this.currAction?.tag === ClimbRamp.tag &&
       this.currAction.isComplete()
     );
   }
@@ -567,6 +707,7 @@ class RailTricks implements Updatable {
     start: { pos: Vec2; railSide: RailSide },
   ) {
     this.skater = skater;
+    this.skater.action = this.tag;
     this.tileSize = this.skater.tileSize;
     this.obstacle = obstacle;
 
@@ -654,24 +795,20 @@ class RailTricks implements Updatable {
         } else if (this.path.hasReachedGoal) {
           this.step = "rail";
           this.path = null;
-          return;
-        }
+        } else {
+          this.path.update(dt);
 
-        this.path.update(dt);
-
-        // Change animation if skater changed direction
-        if (
-          animName === null ||
-          !animName.includes(`-${this.skater.direction}`)
-        ) {
-          this.skater.animations.play(
-            `walk-board-${this.skater.direction}`,
-            getBoardCarryOverlay(this.skater.direction),
-          );
-        }
-
-        if (this.skater.direction === "e" || this.skater.direction === "w") {
-          this.skater.vel.x *= 2;
+          // Change animation if skater changed direction
+          if (
+            !this.skater.animations.isPlaying(
+              `walk-board-${this.skater.direction}`,
+            )
+          ) {
+            this.skater.animations.play(
+              `walk-board-${this.skater.direction}`,
+              getBoardCarryOverlay(this.skater.direction),
+            );
+          }
         }
 
         break;
@@ -711,34 +848,9 @@ class RailTricks implements Updatable {
 
           this.skater.pos = cellToPos(currCell, this.tileSize);
 
-          // temp block out the x direction of rail so that the skater doesn't stand in the way of other skaters who are doing
-
           const numTilesBlock = 4;
 
-          for (
-            let c = this.obstacle.pos.x / this.tileSize - numTilesBlock;
-            c < this.obstacle.pos.x / this.tileSize;
-            c++
-          ) {
-            (this.skater.scene as Play).parkGrid[
-              this.obstacle.pos.y / this.tileSize
-            ][c] = 1;
-          }
-
-          for (
-            let c =
-              this.obstacle.pos.x / this.tileSize +
-              this.obstacle.width / this.tileSize;
-            c <
-            this.obstacle.pos.x / this.tileSize +
-              this.obstacle.width / this.tileSize +
-              numTilesBlock;
-            c++
-          ) {
-            (this.skater.scene as Play).parkGrid[
-              this.obstacle.pos.y / this.tileSize
-            ][c] = 1;
-          }
+          this.updateGridRailSide(1, numTilesBlock);
 
           const closestCell = findClosestFreeCell(
             currCell,
@@ -748,30 +860,7 @@ class RailTricks implements Updatable {
 
           if (closestCell === null) throw Error("WHY");
 
-          for (
-            let c = this.obstacle.pos.x / this.tileSize - numTilesBlock;
-            c < this.obstacle.pos.x / this.tileSize;
-            c++
-          ) {
-            (this.skater.scene as Play).parkGrid[
-              this.obstacle.pos.y / this.tileSize
-            ][c] = 0;
-          }
-
-          for (
-            let c =
-              this.obstacle.pos.x / this.tileSize +
-              this.obstacle.width / this.tileSize;
-            c <
-            this.obstacle.pos.x / this.tileSize +
-              this.obstacle.width / this.tileSize +
-              numTilesBlock;
-            c++
-          ) {
-            (this.skater.scene as Play).parkGrid[
-              this.obstacle.pos.y / this.tileSize
-            ][c] = 0;
-          }
+          this.updateGridRailSide(0, numTilesBlock);
 
           this.path = new Path(
             this.skater,
@@ -782,31 +871,11 @@ class RailTricks implements Updatable {
           (this.skater.scene as Play).parkGrid[closestCell.row][
             closestCell.col
           ] = 1;
-
           this.skater.animations.play(
             `walk-board-${this.skater.direction}`,
             getBoardCarryOverlay(this.skater.direction),
           );
-        }
-
-        this.path.update(dt);
-
-        // Change animation if skater changed direction
-        if (
-          animName === null ||
-          !animName.includes(`-${this.skater.direction}`)
-        ) {
-          this.skater.animations.play(
-            `walk-board-${this.skater.direction}`,
-            getBoardCarryOverlay(this.skater.direction),
-          );
-        }
-
-        if (this.skater.direction === "e" || this.skater.direction === "w") {
-          this.skater.vel.x *= 2;
-        }
-
-        if (this.path.hasReachedGoal) {
+        } else if (this.path.hasReachedGoal) {
           // Change animation and direction when going idle!
 
           if (this.skater.pos.y < this.obstacle.pos.y) {
@@ -837,6 +906,18 @@ class RailTricks implements Updatable {
               getBoardCarryOverlay(this.skater.direction, true),
             );
           }
+        } else {
+          if (
+            !this.skater.animations.isPlaying(
+              `walk-board-${this.skater.direction}`,
+            )
+          ) {
+            this.skater.animations.play(
+              `walk-board-${this.skater.direction}`,
+              getBoardCarryOverlay(this.skater.direction),
+            );
+          }
+          this.path.update(dt);
         }
 
         break;
@@ -851,6 +932,33 @@ class RailTricks implements Updatable {
       this.path.hasReachedGoal &&
       (this.skater.animations.getPlaying()?.includes("idle") ?? false)
     );
+  }
+
+  private updateGridRailSide(val: 0 | 1, numTilesBlock: number) {
+    for (
+      let c = this.obstacle.pos.x / this.tileSize - numTilesBlock;
+      c < this.obstacle.pos.x / this.tileSize;
+      c++
+    ) {
+      (this.skater.scene as Play).parkGrid[this.obstacle.pos.y / this.tileSize][
+        c
+      ] = val;
+    }
+
+    for (
+      let c =
+        this.obstacle.pos.x / this.tileSize +
+        this.obstacle.width / this.tileSize;
+      c <
+      this.obstacle.pos.x / this.tileSize +
+        this.obstacle.width / this.tileSize +
+        numTilesBlock;
+      c++
+    ) {
+      (this.skater.scene as Play).parkGrid[this.obstacle.pos.y / this.tileSize][
+        c
+      ] = val;
+    }
   }
 
   static CreateAnimationSequence(params: {
@@ -1001,6 +1109,7 @@ class RampTricks implements Updatable {
     end: { pos: Vec2; rampSide: RampSide },
   ) {
     this.skater = skater;
+    this.skater.action = this.tag;
     this.tileSize = this.skater.tileSize;
     this.obstacle = obstacle;
 
@@ -1020,7 +1129,7 @@ class RampTricks implements Updatable {
     const trickSet = RampTricks.TrickSet(
       this.start.rampSide,
       this.end.rampSide,
-      randomInt(10),
+      randomInt(1, 10),
     );
 
     this.animationSequence = new AnimationSequence(this.skater, [
@@ -1035,18 +1144,19 @@ class RampTricks implements Updatable {
               return "n";
           }
         })()}`,
-        overlay: (() => {
-          switch (this.start.rampSide) {
-            case RampSide.TOP_LEFT:
-              return { name: "board-carry-l", drawOnTop: true, dy: 3, dx: -2 };
-            case RampSide.TOP_RIGHT:
-              return { name: "board-carry-l", drawOnTop: true, dy: 3, dx: -2 };
-            case RampSide.BOTTOM_RIGHT:
-              return { name: "board-carry-r", drawBehind: true, dy: 3, dx: 2 };
-            case RampSide.BOTTOM_LEFT:
-              return { name: "board-carry-r", drawBehind: true, dy: 3, dx: 2 };
-          }
-        })(),
+        overlay: getBoardCarryOverlay(
+          (() => {
+            switch (this.start.rampSide) {
+              case RampSide.TOP_LEFT:
+              case RampSide.TOP_RIGHT:
+                return "s";
+              case RampSide.BOTTOM_RIGHT:
+              case RampSide.BOTTOM_LEFT:
+                return "n";
+            }
+          })(),
+          false,
+        ),
         type: TransitionType.Distance,
         transition: {
           dy:
@@ -1070,12 +1180,9 @@ class RampTricks implements Updatable {
           anim: t,
           type: TransitionType.Finished,
           transition: null,
-          overlay:
-            t === "ramp-land-w"
-              ? { name: "board-carry-c", drawBehind: true, dy: -1, dx: -2 }
-              : t === "ramp-land-e"
-                ? { name: "board-carry-c", drawOnTop: true, dy: 5, dx: 2 }
-                : undefined,
+          overlay: t.includes("land")
+            ? getBoardCarryOverlay(t.includes("-w") ? "w" : "e", true)
+            : undefined,
         }),
       ),
       AnimationSequence.createAnim({
@@ -1089,18 +1196,19 @@ class RampTricks implements Updatable {
               return "s";
           }
         })()}`,
-        overlay: (() => {
-          switch (this.end.rampSide) {
-            case RampSide.TOP_LEFT:
-              return { name: "board-carry-r", drawBehind: true, dy: 3, dx: 2 };
-            case RampSide.TOP_RIGHT:
-              return { name: "board-carry-r", drawBehind: true, dy: 3, dx: 2 };
-            case RampSide.BOTTOM_RIGHT:
-              return { name: "board-carry-l", drawOnTop: true, dy: 3, dx: -2 };
-            case RampSide.BOTTOM_LEFT:
-              return { name: "board-carry-l", drawOnTop: true, dy: 3, dx: -2 };
-          }
-        })(),
+        overlay: getBoardCarryOverlay(
+          (() => {
+            switch (this.end.rampSide) {
+              case RampSide.TOP_LEFT:
+              case RampSide.TOP_RIGHT:
+                return "n";
+              case RampSide.BOTTOM_RIGHT:
+              case RampSide.BOTTOM_LEFT:
+                return "s";
+            }
+          })(),
+          false,
+        ),
         type: TransitionType.Distance,
         transition: {
           dy:
@@ -1120,22 +1228,21 @@ class RampTricks implements Updatable {
         },
       }),
     ]);
+
+    this.animationSequence.start();
   }
 
   update(dt: number): void {
+    this.animationSequence.update(dt);
     if (this.animationSequence.getCurrentAnimation().name === "walk-board-n") {
       this.skater.vel.y = -1;
+      this.skater.direction = "n";
     } else if (
       this.animationSequence.getCurrentAnimation().name === "walk-board-s"
     ) {
+      this.skater.direction = "s";
       this.skater.vel.y = 1;
-    } else if (
-      this.animationSequence.getCurrentAnimation().name.startsWith("trick")
-    ) {
-      this.skater.pos.y = this.obstacle.pos.y + this.obstacle.halfHeight;
     }
-
-    this.animationSequence.update(dt);
   }
 
   isComplete(): boolean {
@@ -1213,6 +1320,7 @@ class BowlObstacle implements Updatable {
 
   constructor(skater: Skater, obstacle: Bowl, ms: number) {
     this.skater = skater;
+    this.skater.action = this.tag;
     this.timer = new Timer();
     this.timer.start(ms);
     this.currAction = null;
@@ -1301,6 +1409,7 @@ class BowlTricks implements Updatable {
     start: { pos: Vec2; bowlSide: BowlSide },
   ) {
     this.skater = skater;
+    this.skater.action = this.tag;
     this.tileSize = this.skater.tileSize;
     this.obstacle = obstacle;
 
@@ -1310,7 +1419,7 @@ class BowlTricks implements Updatable {
 
     this.path = null;
 
-    const seq = BowlTricks.TrickSet(this.start.bowlSide, randomInt(10));
+    const seq = BowlTricks.TrickSet(this.start.bowlSide, randomInt(1, 10));
 
     this.animationSequence = new AnimationSequence(this.skater, seq);
   }
@@ -1491,7 +1600,7 @@ class BowlTricks implements Updatable {
     );
 
     for (let i = 0; i < numTricks; ++i) {
-      const trick = "180"; // true ? randomEl(obstacleTricks.bowl)! : null;
+      const trick = randomBool() ? randomEl(obstacleTricks.bowl)! : null;
 
       if (isHorizontal) {
         if (trick === "180") {
@@ -1521,17 +1630,19 @@ class BowlTricks implements Updatable {
       );
     }
 
-    set.push({
-      anim: `flip-${direction}`,
-      type: TransitionType.Finished,
-      transition: null,
-      overlay: getBoardFlipOverlay(direction),
-    });
+    set.push(
+      AnimationSequence.createAnim({
+        anim: `flip-${direction}`,
+        type: TransitionType.Finished,
+        transition: null,
+        overlay: getBoardFlipOverlay(direction),
+      }),
+    );
 
     set.push({
       anim: `idle-stand-${direction}`,
       type: TransitionType.Time,
-      transition: { duration: 500 },
+      transition: { duration: 1000 },
       overlay: getBoardCarryOverlay(direction, true),
     });
 
@@ -1637,24 +1748,73 @@ class CruiseTo implements Updatable {
 
   skater: Skater;
   path: Path;
+  private animSeq: AnimationSequence | null;
 
   constructor(skater: Skater, to: Vec2) {
     this.skater = skater;
+    this.skater.action = this.tag;
+
     this.path = new Path(this.skater, to, (this.skater.scene as Play).parkGrid);
-  }
-
-  update(dt: number): void {
-    const anim = this.skater.animations.getPlaying();
-
-    if (anim !== null && !anim.includes(this.skater.direction)) {
+    if (this.skater.direction === "e") {
+      this.skater.animations.play(`cruise-b-${this.skater.direction}`);
+    } else if (this.skater.direction === "w") {
+      this.skater.animations.play(`cruise-f-${this.skater.direction}`);
+    } else {
       this.skater.animations.play(`cruise-${this.skater.direction}`);
     }
 
-    this.path.update(dt);
+    this.animSeq = null;
+  }
+
+  update(dt: number): void {
+    if (this.path.hasReachedGoal) {
+      if (!this.animSeq) {
+        this.animSeq = new AnimationSequence(
+          this.skater,
+          [
+            AnimationSequence.createAnim({
+              anim: `flip-${this.skater.direction}`,
+              type: TransitionType.Finished,
+              transition: null,
+              overlay: getBoardFlipOverlay(this.skater.direction),
+            }),
+            AnimationSequence.createAnim({
+              anim: `idle-stand-${this.skater.direction}`,
+              type: TransitionType.Time,
+              transition: { duration: 1000 },
+              overlay: getBoardCarryOverlay(this.skater.direction, true),
+            }),
+          ],
+          (anim: string) => {
+            console.log(anim);
+          },
+        );
+        this.animSeq.start();
+      }
+
+      this.animSeq.update(dt);
+    } else {
+      const anim = this.skater.animations.getPlaying();
+      if (anim === null || !anim.includes(`-${this.skater.direction}`)) {
+        if (this.skater.direction === "e") {
+          this.skater.animations.play(`cruise-b-${this.skater.direction}`);
+        } else if (this.skater.direction === "w") {
+          this.skater.animations.play(`cruise-f-${this.skater.direction}`);
+        } else {
+          this.skater.animations.play(`cruise-${this.skater.direction}`);
+        }
+      }
+
+      this.path.update(dt);
+    }
   }
 
   isComplete(): boolean {
-    return this.path?.hasReachedGoal ?? false;
+    return (
+      this.path.hasReachedGoal &&
+      this.animSeq !== null &&
+      this.animSeq.isFinished
+    );
   }
 }
 
@@ -1667,11 +1827,14 @@ class WaitingMyTurn implements Updatable {
 
   constructor(skater: Skater, obstacle: Obstacle) {
     this.skater = skater;
+    this.skater.action = this.tag;
     this.obstacle = obstacle;
     this.timer = new Timer();
     this.timer.start(1000 * 3);
-    const skaterCell = this.skater.getGridCell();
-    (this.skater.scene as Play).parkGrid[skaterCell.row][skaterCell.col] = 1;
+    if (this.obstacle.isStartOnGround()) {
+      const skaterCell = this.skater.getGridCell();
+      (this.skater.scene as Play).parkGrid[skaterCell.row][skaterCell.col] = 1;
+    }
   }
 
   update(_: number): void {
@@ -1685,8 +1848,12 @@ class WaitingMyTurn implements Updatable {
     }
 
     if (this.obstacle.isMyTurn(this.skater.id)) {
-      const skaterCell = this.skater.getGridCell();
-      (this.skater.scene as Play).parkGrid[skaterCell.row][skaterCell.col] = 0;
+      if (this.obstacle.isStartOnGround()) {
+        const skaterCell = this.skater.getGridCell();
+        (this.skater.scene as Play).parkGrid[skaterCell.row][skaterCell.col] =
+          0;
+      }
+
       this.obstacle.skate(this.skater.id);
     }
   }
@@ -1701,23 +1868,32 @@ class SittingBench implements Updatable {
   readonly tag: "bench" = SittingBench.TAG;
   private skater: Skater;
   private timer: Timer;
+  private bench: Bench;
 
-  constructor(skater: Skater, duration: number) {
+  constructor(skater: Skater, bench: Bench, duration: number) {
     this.skater = skater;
+    this.skater.action = this.tag;
+    this.bench = bench;
     this.timer = new Timer();
     this.timer.start(duration);
+
     const skaterCell = this.skater.getGridCell();
     (this.skater.scene as Play).parkGrid[skaterCell.row][skaterCell.col] = 1;
   }
 
   update(_: number): void {
-    if (
-      !this.skater.animations.isPlaying(`idle-sit-${this.skater.direction}`)
-    ) {
-      this.skater.animations.play(
-        `idle-sit-${this.skater.direction}`,
-        getBoardCarryOverlay(this.skater.direction, true),
-      );
+    if (!this.skater.animations.isPlaying("idle-sit-s")) {
+      this.skater.pos.x = this.bench.pos.x;
+      this.skater.pos.y = this.bench.pos.y;
+      this.skater.direction = "s";
+      this.skater.pos.y -= 2;
+      this.skater.animations.play("idle-sit-s", {
+        name: `board-sit-s`,
+        drawOnTop: true,
+        drawBehind: false,
+        dy: this.skater.tileSize * 0.5 + 2,
+        dx: 0,
+      });
     }
   }
 
@@ -1726,7 +1902,7 @@ class SittingBench implements Updatable {
   }
 }
 
-type ActionTag =
+export type ActionTag =
   | "skating-at-park"
   | "bench"
   | "cruise-to"
@@ -1740,9 +1916,14 @@ type ActionTag =
 type ActionParams = {
   "skating-at-park": [skater: Skater];
   "cruise-to": [skater: Skater, to: Vec2];
-  bench: [skater: Skater, duration: number];
+  bench: [skater: Skater, bench: Bench, duration: number];
 
-  "climb-ramp": [skater: Skater, obstacle: Obstacle, rampSide: RampSide];
+  "climb-ramp": [
+    skater: Skater,
+    obstacle: Ramp,
+    rampSide: RampSide,
+    climbUp: boolean,
+  ];
   "ramp-tricks": [
     skater: Skater,
     obstacle: Obstacle,
@@ -1772,7 +1953,7 @@ const ActionConstructors: { [T in ActionTag]: UpdatableConstructor<T> } = {
   bench: SittingBench,
   "cruise-to": CruiseTo,
   "waiting-my-turn": WaitingMyTurn,
-  "climb-ramp": ClimbRampObstacle,
+  "climb-ramp": ClimbRamp,
   "ramp-tricks": RampTricks,
   "rail-tricks": RailTricks,
   "bowl-tricks": BowlTricks,

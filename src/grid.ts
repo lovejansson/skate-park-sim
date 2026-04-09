@@ -1,4 +1,5 @@
 import type { Cell } from "./lib/types";
+import { randomEl } from "./utils";
 
 export function createGrid(
   rows: number,
@@ -50,6 +51,23 @@ export function findClosestFreeCell(
   }
 
   return null;
+}
+
+export function getRandomFreeCell(
+  grid: (0 | 1)[][],
+  walkableTileValues: number[] = [0],
+) {
+  const freeCells: Cell[] = [];
+
+  for (let r = 0; r < grid.length; ++r) {
+    for (let c = 0; c < grid[r].length; ++c) {
+      if (walkableTileValues.includes(grid[r][c])) {
+        freeCells.push({ row: r, col: c });
+      }
+    }
+  }
+
+  return randomEl(freeCells);
 }
 
 export function createPathAStar(

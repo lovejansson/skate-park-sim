@@ -36,8 +36,8 @@ export function randomIndex<T>(arr: T[]): number {
   return Math.floor(arr.length * Math.random());
 }
 
-export function randomInt(max: number) {
-  return Math.round(Math.random() * max);
+export function randomInt(min: number, max: number) {
+  return Math.round(Math.random() * (max - min)) + min;
 }
 
 export function randomOdd(max: number) {

@@ -8,8 +8,7 @@ import {
 } from "./lib/AnimationManager";
 import type { Direction, Vec2 } from "./lib/types";
 import type Play from "./Play";
-import type { Updatable } from "./SkatingAtPark";
-import SkatingAtPark from "./SkatingAtPark";
+import SkatingAtPark, { type ActionTag } from "./SkatingAtPark";
 import spritesheetJSON from "./skater-spritesheet.json";
 import { type AsepriteJSON } from "./lib/index";
 
@@ -25,16 +24,28 @@ export default class Skater extends Sprite {
 
   skill: Skill;
   who: string;
-  action: Updatable;
+  skatingAtPark: SkatingAtPark;
   tileSize: number;
+  obstacle: number | null;
+  bench: number | null;
+  action: ActionTag | null;
+  initAction: ActionTag;
 
-  constructor(scene: Play, pos: Vec2, who: string, skill: Skill) {
+  constructor(
+    scene: Play,
+    pos: Vec2,
+    who: string,
+    skill: Skill,
+    initAction: ActionTag,
+  ) {
     super(scene, pos, 16, 32, "s");
 
     this.tileSize = scene.art!.tileSize;
+    this.initAction = initAction;
 
     this.who = who;
     this.skill = skill;
+    this.action = null;
 
     const { animations, overlays } = createAnimationsFromAseprite(
       spritesheet,
@@ -50,12 +61,17 @@ export default class Skater extends Sprite {
       this.animations.createOverlay(name, overlay);
     }
 
-    this.action = new SkatingAtPark(this);
+    this.skatingAtPark = new SkatingAtPark(this);
+
+    this.obstacle = null;
+    this.bench = null;
   }
+
+
 
   update(dt: number): void {
     this.animations.update(dt);
-    this.action.update(dt);
+    this.skatingAtPark.update(dt);
     this.updateVelocity();
   }
 
@@ -81,10 +97,12 @@ export default class Skater extends Sprite {
       ) {
         speed = 0;
       } else if (animName.includes("walk")) {
-        // velocity is updated in Path right now hmmmmm
-        // if(this.direction === "e" || this.direction === "w") {
-        //   this.vel.x *= 2;
-        // }
+        // velocity is updated in Path right now though
+
+        speed = 1;
+        if (this.direction === "e" || this.direction === "w") {
+          speed = 2;
+        }
       } else if (
         animName.includes("kickflip") ||
         animName.includes("shove-it") ||
@@ -93,12 +111,13 @@ export default class Skater extends Sprite {
         animName.includes("180") ||
         animName.includes("180")
       ) {
-        if (this.action.tag === "rail-tricks") {
+        if (this.action === "rail-tricks") {
           speed = Skater.TRICK_SPEED;
         } else {
           speed = 0;
         }
       }
+
       switch (this.direction) {
         case "n":
           this.vel.y = -speed;
@@ -263,6 +282,16 @@ const AnimationSettings: Record<
     repeat: true,
     isAnim: true,
   },
+  "idle-sit-n": {
+    driver: PositionUpdateType.Vel,
+    repeat: true,
+    isAnim: true,
+  },
+  "idle-sit-s": {
+    driver: PositionUpdateType.Vel,
+    repeat: true,
+    isAnim: true,
+  },
   "idle-stand-n": {
     driver: PositionUpdateType.Vel,
     repeat: true,
@@ -382,6 +411,17 @@ const AnimationSettings: Record<
     isAnim: true,
   },
 
+  "cruise-n": {
+    driver: PositionUpdateType.Vel,
+    repeat: true,
+    isAnim: true,
+  },
+  "cruise-s": {
+    driver: PositionUpdateType.Vel,
+    repeat: true,
+    isAnim: true,
+  },
+
   "cruise-f-e": {
     driver: PositionUpdateType.Vel,
     repeat: true,
@@ -403,7 +443,6 @@ const AnimationSettings: Record<
     isAnim: true,
   },
 
-  // Distance-based (cruise-ramp for example),
   "cruise-ramp-f-e": {
     driver: PositionUpdateType.Delta,
     repeat: false,
@@ -673,7 +712,6 @@ function createAnimationsFromAseprite(
             });
           } else if (isCruiseBowl) {
             if (direction === "s" || direction === "n") {
-
               const motion = Motions["cruise-bowl-" + direction];
 
               for (const d of motion) {
@@ -685,8 +723,6 @@ function createAnimationsFromAseprite(
                   dy: d.dy,
                 });
               }
-
-              
             } else {
               const delta = Motions[`cruise-bowl-h`][i - tag.from];
               frames.push({

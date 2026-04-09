@@ -210,6 +210,13 @@ export default class AnimationManager {
     return this.playingAnimation?.key === name;
   }
 
+  isLastFrame(): boolean {
+    return (
+      this.playingAnimation?.frameCount ===
+      this.playingAnimation?.config.frames.length
+    );
+  }
+
   getPlaying(): string | null {
     return this.playingAnimation?.key ?? null;
   }

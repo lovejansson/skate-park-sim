@@ -42,6 +42,7 @@ export class Path {
   }
 
   update(_: number) {
+
     if (!this.hasReachedGoal) {
       this.updateVelocity();
       this.updateDirection();
@@ -51,6 +52,7 @@ export class Path {
       const diff = getPosDiff(this.sprite.pos, this.currStart);
       const pixelDiff = Math.max(Math.abs(diff.x), Math.abs(diff.y));
 
+   
       if (pixelDiff === this.sprite.scene.art!.tileSize) {
         this.next();
       }
@@ -85,6 +87,7 @@ export class Path {
   }
 
   private updateDirection(): void {
+  
     this.sprite.direction = directionLables[this.sprite.vel.y + 1][
       this.sprite.vel.x + 1
     ] as Direction;
