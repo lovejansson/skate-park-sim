@@ -359,13 +359,13 @@ class RailObstacle implements Updatable {
       this.skater.direction = "s";
       this.skater.animations.play(
         "idle-stand-s",
-        getBoardCarryOverlay(this.skater.direction, true),
+        { overlay: getBoardCarryOverlay(this.skater.direction, true) },
       );
     } else {
       this.skater.direction = "n";
       this.skater.animations.play(
         "idle-stand-n",
-        getBoardCarryOverlay(this.skater.direction, true),
+        { overlay: getBoardCarryOverlay(this.skater.direction, true) },
       );
     }
   }
@@ -472,7 +472,7 @@ class ClimbRamp implements Updatable {
             AnimationSequence.createAnim({
               type: TransitionType.Distance,
               anim: "walk-board-s",
-              overlay: getBoardCarryOverlay("n", false),
+              options: { overlay: getBoardCarryOverlay("n", false) },
               transition: { dx: 0, dy: this.tileSize * 2 * this.skater.vel.y },
             }),
           ],
@@ -486,7 +486,7 @@ class ClimbRamp implements Updatable {
           AnimationSequence.createAnim({
             type: TransitionType.Distance,
             anim: "walk-board-s",
-            overlay: getBoardCarryOverlay("s", false),
+            options: { overlay: getBoardCarryOverlay("s", false) },
             transition: { dx: 0, dy: this.tileSize * 2 * this.skater.vel.y },
           }),
         ]);
@@ -497,14 +497,14 @@ class ClimbRamp implements Updatable {
           AnimationSequence.createAnim({
             type: TransitionType.Distance,
             anim: `walk-board-${this.skater.direction}`,
-            overlay: getBoardCarryOverlay("n", false),
+            options: { overlay: getBoardCarryOverlay("n", false) },
             transition: { dx: 0, dy: this.tileSize * this.skater.vel.y },
           }),
 
           AnimationSequence.createAnim({
             type: TransitionType.Distance,
             anim: climbUp ? "climb-up" : "climb-down",
-            overlay: getBoardCarryOverlay("n", false),
+            options: { overlay: getBoardCarryOverlay("n", false) },
             transition: { dx: 0, dy: this.tileSize * 2 * this.skater.vel.y },
           }),
         ];
@@ -536,7 +536,7 @@ class ClimbRamp implements Updatable {
       ) {
         this.skater.animations.play(
           `idle-stand-${this.skater.direction}`,
-          getBoardCarryOverlay(this.skater.direction, true),
+          { overlay: getBoardCarryOverlay(this.skater.direction, true) },
         );
       }
     }
@@ -790,7 +790,7 @@ class RailTricks implements Updatable {
 
           this.skater.animations.play(
             `walk-board-${this.skater.direction}`,
-            getBoardCarryOverlay(this.skater.direction),
+            { overlay: getBoardCarryOverlay(this.skater.direction) },
           );
         } else if (this.path.hasReachedGoal) {
           this.step = "rail";
@@ -806,7 +806,7 @@ class RailTricks implements Updatable {
           ) {
             this.skater.animations.play(
               `walk-board-${this.skater.direction}`,
-              getBoardCarryOverlay(this.skater.direction),
+              { overlay: getBoardCarryOverlay(this.skater.direction) },
             );
           }
         }
@@ -873,7 +873,7 @@ class RailTricks implements Updatable {
           ] = 1;
           this.skater.animations.play(
             `walk-board-${this.skater.direction}`,
-            getBoardCarryOverlay(this.skater.direction),
+            { overlay: getBoardCarryOverlay(this.skater.direction) },
           );
         } else if (this.path.hasReachedGoal) {
           // Change animation and direction when going idle!
@@ -882,7 +882,7 @@ class RailTricks implements Updatable {
             this.skater.direction = "s";
             this.skater.animations.play(
               "idle-stand-s",
-              getBoardCarryOverlay(this.skater.direction, true),
+              { overlay: getBoardCarryOverlay(this.skater.direction, true) },
             );
           } else if (
             this.skater.pos.y >
@@ -891,19 +891,19 @@ class RailTricks implements Updatable {
             this.skater.direction = "n";
             this.skater.animations.play(
               "idle-stand-n",
-              getBoardCarryOverlay(this.skater.direction, true),
+              { overlay: getBoardCarryOverlay(this.skater.direction, true) },
             );
           } else if (this.skater.pos.x > this.obstacle.pos.x) {
             this.skater.direction = "w";
             this.skater.animations.play(
               "idle-stand-w",
-              getBoardCarryOverlay(this.skater.direction, true),
+              { overlay: getBoardCarryOverlay(this.skater.direction, true) },
             );
           } else {
             this.skater.direction = "e";
             this.skater.animations.play(
               "idle-stand-e",
-              getBoardCarryOverlay(this.skater.direction, true),
+              { overlay: getBoardCarryOverlay(this.skater.direction, true) },
             );
           }
         } else {
@@ -914,7 +914,7 @@ class RailTricks implements Updatable {
           ) {
             this.skater.animations.play(
               `walk-board-${this.skater.direction}`,
-              getBoardCarryOverlay(this.skater.direction),
+              { overlay: getBoardCarryOverlay(this.skater.direction) },
             );
           }
           this.path.update(dt);
@@ -1072,19 +1072,19 @@ class RailTricks implements Updatable {
     // console.log("CRUIOSE BAC", tilesAfterRail + diffToEvenTiles);
     pushCruise(tilesAfterRail + diffToEvenTiles);
 
-    sequence.push({
+    sequence.push(AnimationSequence.createAnim({
       anim: `flip-${isGoingRight ? "e" : "w"}`,
       type: TransitionType.Finished,
       transition: null,
-      overlay: getBoardFlipOverlay(isGoingRight ? "e" : "w"),
-    });
+      options: { overlay: getBoardFlipOverlay(isGoingRight ? "e" : "w") },
+    }));
 
-    sequence.push({
+    sequence.push(AnimationSequence.createAnim({
       anim: `idle-stand-${isGoingRight ? "e" : "w"}`,
       type: TransitionType.Time,
       transition: { duration: 500 },
-      overlay: getBoardCarryOverlay(isGoingRight ? "e" : "w", true),
-    });
+      options: { overlay: getBoardCarryOverlay(isGoingRight ? "e" : "w", true) },
+    }));
 
     return sequence;
   }
@@ -1144,7 +1144,7 @@ class RampTricks implements Updatable {
               return "n";
           }
         })()}`,
-        overlay: getBoardCarryOverlay(
+        options: { overlay: getBoardCarryOverlay(
           (() => {
             switch (this.start.rampSide) {
               case RampSide.TOP_LEFT:
@@ -1156,7 +1156,7 @@ class RampTricks implements Updatable {
             }
           })(),
           false,
-        ),
+        ) },
         type: TransitionType.Distance,
         transition: {
           dy:
@@ -1180,8 +1180,8 @@ class RampTricks implements Updatable {
           anim: t,
           type: TransitionType.Finished,
           transition: null,
-          overlay: t.includes("land")
-            ? getBoardCarryOverlay(t.includes("-w") ? "w" : "e", true)
+          options: t.includes("land")
+            ? { overlay: getBoardCarryOverlay(t.includes("-w") ? "w" : "e", true) }
             : undefined,
         }),
       ),
@@ -1196,7 +1196,7 @@ class RampTricks implements Updatable {
               return "s";
           }
         })()}`,
-        overlay: getBoardCarryOverlay(
+        options: { overlay: getBoardCarryOverlay(
           (() => {
             switch (this.end.rampSide) {
               case RampSide.TOP_LEFT:
@@ -1208,7 +1208,7 @@ class RampTricks implements Updatable {
             }
           })(),
           false,
-        ),
+        ) },
         type: TransitionType.Distance,
         transition: {
           dy:
@@ -1441,7 +1441,7 @@ class BowlTricks implements Updatable {
 
           this.skater.animations.play(
             `walk-board-${this.skater.direction}`,
-            getBoardCarryOverlay(this.skater.direction),
+            { overlay: getBoardCarryOverlay(this.skater.direction) },
           );
         } else if (this.path.hasReachedGoal) {
           this.step = "bowl";
@@ -1458,7 +1458,7 @@ class BowlTricks implements Updatable {
         ) {
           this.skater.animations.play(
             `walk-board-${this.skater.direction}`,
-            getBoardCarryOverlay(this.skater.direction),
+            { overlay: getBoardCarryOverlay(this.skater.direction) },
           );
         }
 
@@ -1510,7 +1510,7 @@ class BowlTricks implements Updatable {
 
           this.skater.animations.play(
             `walk-board-${this.skater.direction}`,
-            getBoardCarryOverlay(this.skater.direction),
+            { overlay: getBoardCarryOverlay(this.skater.direction) },
           );
         }
 
@@ -1523,7 +1523,7 @@ class BowlTricks implements Updatable {
         ) {
           this.skater.animations.play(
             `walk-board-${this.skater.direction}`,
-            getBoardCarryOverlay(this.skater.direction),
+            { overlay: getBoardCarryOverlay(this.skater.direction) },
           );
         }
 
@@ -1534,7 +1534,7 @@ class BowlTricks implements Updatable {
             this.skater.direction = "s";
             this.skater.animations.play(
               "idle-stand-s",
-              getBoardCarryOverlay(this.skater.direction, true),
+              { overlay: getBoardCarryOverlay(this.skater.direction, true) },
             );
           } else if (
             this.skater.pos.y >
@@ -1543,19 +1543,19 @@ class BowlTricks implements Updatable {
             this.skater.direction = "n";
             this.skater.animations.play(
               "idle-stand-n",
-              getBoardCarryOverlay(this.skater.direction, true),
+              { overlay: getBoardCarryOverlay(this.skater.direction, true) },
             );
           } else if (this.skater.pos.x > this.obstacle.pos.x) {
             this.skater.direction = "w";
             this.skater.animations.play(
               "idle-stand-w",
-              getBoardCarryOverlay(this.skater.direction, true),
+              { overlay: getBoardCarryOverlay(this.skater.direction, true) },
             );
           } else {
             this.skater.direction = "e";
             this.skater.animations.play(
               "idle-stand-e",
-              getBoardCarryOverlay(this.skater.direction, true),
+              { overlay: getBoardCarryOverlay(this.skater.direction, true) },
             );
           }
         }
@@ -1635,16 +1635,16 @@ class BowlTricks implements Updatable {
         anim: `flip-${direction}`,
         type: TransitionType.Finished,
         transition: null,
-        overlay: getBoardFlipOverlay(direction),
+        options: { overlay: getBoardFlipOverlay(direction) },
       }),
     );
 
-    set.push({
+    set.push(AnimationSequence.createAnim({
       anim: `idle-stand-${direction}`,
       type: TransitionType.Time,
       transition: { duration: 1000 },
-      overlay: getBoardCarryOverlay(direction, true),
-    });
+      options: { overlay: getBoardCarryOverlay(direction, true) },
+    }));
 
     return set;
   }
@@ -1776,13 +1776,13 @@ class CruiseTo implements Updatable {
               anim: `flip-${this.skater.direction}`,
               type: TransitionType.Finished,
               transition: null,
-              overlay: getBoardFlipOverlay(this.skater.direction),
+              options: { overlay: getBoardFlipOverlay(this.skater.direction) },
             }),
             AnimationSequence.createAnim({
               anim: `idle-stand-${this.skater.direction}`,
               type: TransitionType.Time,
               transition: { duration: 1000 },
-              overlay: getBoardCarryOverlay(this.skater.direction, true),
+              options: { overlay: getBoardCarryOverlay(this.skater.direction, true) },
             }),
           ],
           (anim: string) => {
@@ -1843,7 +1843,7 @@ class WaitingMyTurn implements Updatable {
     ) {
       this.skater.animations.play(
         `idle-stand-${this.skater.direction}`,
-        getBoardCarryOverlay(this.skater.direction, true),
+        { overlay: getBoardCarryOverlay(this.skater.direction, true) },
       );
     }
 
@@ -1888,11 +1888,13 @@ class SittingBench implements Updatable {
       this.skater.direction = "s";
       this.skater.pos.y -= 2;
       this.skater.animations.play("idle-sit-s", {
-        name: `board-sit-s`,
-        drawOnTop: true,
-        drawBehind: false,
-        dy: this.skater.tileSize * 0.5 + 2,
-        dx: 0,
+        overlay: {
+          name: `board-sit-s`,
+          drawOnTop: true,
+          drawBehind: false,
+          dy: this.skater.tileSize * 0.5 + 2,
+          dx: 0,
+        },
       });
     }
   }
